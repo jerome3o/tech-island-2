@@ -15,6 +15,7 @@ import helloApp from './apps/hello/api';
 import chatApp from './apps/chat/api';
 import splitsApp from './apps/splits/api';
 import boggleApp from './apps/boggle/api';
+import beboApp from './apps/bebo/api';
 
 const app = new Hono<AppContext>();
 
@@ -130,6 +131,7 @@ app.route('/hello', helloApp);
 app.route('/chat', chatApp);
 app.route('/splits', splitsApp);
 app.route('/boggle', boggleApp);
+app.route('/bebo', beboApp);
 
 // ============================================
 // Static file serving
