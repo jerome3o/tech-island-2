@@ -1,0 +1,26 @@
+{
+  "name": "towerhouse-apps",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "db:migrate": "wrangler d1 migrations apply towerhouse-db --local",
+    "db:migrate:prod": "wrangler d1 migrations apply towerhouse-db --remote",
+    "generate-vapid": "npx tsx scripts/generate-vapid-keys.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0",
+    "hono": "^4.6.0",
+    "web-push": "^3.6.7"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20241127.0",
+    "@types/web-push": "^3.6.4",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0",
+    "wrangler": "^3.93.0"
+  }
+}

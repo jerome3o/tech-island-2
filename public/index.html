@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Towerhouse Apps</title>
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#4F46E5">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="apple-touch-icon" href="/icons/icon-192.png">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 1rem;
+      padding-top: env(safe-area-inset-top, 1rem);
+      padding-bottom: env(safe-area-inset-bottom, 1rem);
+    }
+
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    header {
+      text-align: center;
+      color: white;
+      margin-bottom: 2rem;
+      padding-top: 2rem;
+    }
+
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .subtitle {
+      opacity: 0.9;
+      font-size: 1.1rem;
+    }
+
+    .user-info {
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 12px;
+      padding: 1rem;
+      margin-bottom: 2rem;
+      color: white;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .user-avatar {
+      width: 48px;
+      height: 48px;
+      background: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+    }
+
+    .apps-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 1rem;
+    }
+
+    .app-card {
+      background: white;
+      border-radius: 16px;
+      padding: 1.5rem;
+      text-align: center;
+      text-decoration: none;
+      color: inherit;
+      transition: transform 0.2s, box-shadow 0.2s;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .app-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .app-icon {
+      font-size: 3rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .app-name {
+      font-weight: 600;
+      font-size: 1rem;
+      color: #1a1a1a;
+    }
+
+    .app-description {
+      font-size: 0.8rem;
+      color: #666;
+      margin-top: 0.25rem;
+    }
+
+    .notification-prompt {
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 12px;
+      padding: 1rem;
+      margin-top: 2rem;
+      display: none;
+    }
+
+    .notification-prompt.show {
+      display: block;
+    }
+
+    .notification-prompt button {
+      background: #4F46E5;
+      color: white;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      cursor: pointer;
+      margin-top: 0.5rem;
+    }
+
+    .install-prompt {
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 12px;
+      padding: 1rem;
+      margin-top: 1rem;
+      display: none;
+    }
+
+    .install-prompt.show {
+      display: block;
+    }
+
+    .install-prompt button {
+      background: #10B981;
+      color: white;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      cursor: pointer;
+      margin-top: 0.5rem;
+    }
+
+    .loading {
+      text-align: center;
+      color: white;
+      padding: 2rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🏠 Towerhouse</h1>
+      <p class="subtitle">Your apps, all in one place</p>
+    </header>
+
+    <div id="user-info" class="user-info" style="display: none;">
+      <div class="user-avatar" id="user-avatar">👤</div>
+      <div>
+        <strong id="user-name">Loading...</strong>
+        <div id="user-email" style="opacity: 0.8; font-size: 0.9rem;"></div>
+      </div>
+    </div>
+
+    <div id="apps-container" class="loading">
+      Loading apps...
+    </div>
+
+    <div id="install-prompt" class="install-prompt">
+      <strong>📱 Install App</strong>
+      <p>Add Towerhouse to your home screen for quick access.</p>
+      <button id="install-button">Install</button>
+    </div>
+
+    <div id="notification-prompt" class="notification-prompt">
+      <strong>🔔 Enable Notifications</strong>
+      <p>Get notified when important things happen.</p>
+      <button id="notification-button">Enable</button>
+    </div>
+  </div>
+
+  <script>
+    // Register service worker
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js')
+        .then((reg) => console.log('Service worker registered'))
+        .catch((err) => console.error('Service worker registration failed:', err));
+    }
+
+    // Load user info
+    async function loadUser() {
+      try {
+        const response = await fetch('/api/me');
+        if (response.ok) {
+          const user = await response.json();
+          document.getElementById('user-info').style.display = 'flex';
+          document.getElementById('user-name').textContent = user.name || user.email.split('@')[0];
+          document.getElementById('user-email').textContent = user.email;
+          document.getElementById('user-avatar').textContent = (user.name || user.email)[0].toUpperCase();
+        }
+      } catch (error) {
+        console.error('Failed to load user:', error);
+      }
+    }
+
+    // Load apps
+    async function loadApps() {
+      const container = document.getElementById('apps-container');
+
+      try {
+        const response = await fetch('/api/apps');
+        const data = await response.json();
+
+        if (data.apps.length === 0) {
+          container.innerHTML = '<p style="color: white; text-align: center;">No apps available yet.</p>';
+          return;
+        }
+
+        container.className = 'apps-grid';
+        container.innerHTML = data.apps.map(app => `
+          <a href="${app.path}" class="app-card">
+            <div class="app-icon">${app.icon}</div>
+            <div class="app-name">${app.name}</div>
+            <div class="app-description">${app.description}</div>
+          </a>
+        `).join('');
+      } catch (error) {
+        console.error('Failed to load apps:', error);
+        container.innerHTML = '<p style="color: white; text-align: center;">Failed to load apps.</p>';
+      }
+    }
+
+    // PWA install prompt
+    let deferredPrompt;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      document.getElementById('install-prompt').classList.add('show');
+    });
+
+    document.getElementById('install-button')?.addEventListener('click', async () => {
+      if (!deferredPrompt) return;
+      deferredPrompt.prompt();
+      const result = await deferredPrompt.userChoice;
+      console.log('Install prompt result:', result);
+      deferredPrompt = null;
+      document.getElementById('install-prompt').classList.remove('show');
+    });
+
+    // Push notification setup
+    async function setupPushNotifications() {
+      if (!('Notification' in window) || !('PushManager' in window)) return;
+
+      if (Notification.permission === 'default') {
+        document.getElementById('notification-prompt').classList.add('show');
+      }
+
+      document.getElementById('notification-button')?.addEventListener('click', async () => {
+        const permission = await Notification.requestPermission();
+        if (permission === 'granted') {
+          await subscribeToPush();
+        }
+        document.getElementById('notification-prompt').classList.remove('show');
+      });
+    }
+
+    async function subscribeToPush() {
+      try {
+        const registration = await navigator.serviceWorker.ready;
+
+        // Get VAPID public key from server
+        const vapidResponse = await fetch('/api/push/vapid-key');
+        const { publicKey } = await vapidResponse.json();
+
+        const subscription = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(publicKey)
+        });
+
+        // Send subscription to server
+        await fetch('/api/push/subscribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(subscription)
+        });
+
+        console.log('Push subscription successful');
+      } catch (error) {
+        console.error('Push subscription failed:', error);
+      }
+    }
+
+    function urlBase64ToUint8Array(base64String) {
+      const padding = '='.repeat((4 - base64String.length % 4) % 4);
+      const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+      const rawData = window.atob(base64);
+      const outputArray = new Uint8Array(rawData.length);
+      for (let i = 0; i < rawData.length; ++i) {
+        outputArray[i] = rawData.charCodeAt(i);
+      }
+      return outputArray;
+    }
+
+    // Initialize
+    loadUser();
+    loadApps();
+    setupPushNotifications();
+  </script>
+</body>
+</html>

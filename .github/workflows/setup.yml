@@ -1,0 +1,53 @@
+name: Initial Setup
+
+# Run manually once to create D1 database
+on:
+  workflow_dispatch:
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    name: Create Infrastructure
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --registry https://registry.npmjs.org
+
+      - name: Create D1 Database
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: d1 create towerhouse-db
+        continue-on-error: true  # Ignore if already exists
+
+      - name: Get Database Info
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: d1 info towerhouse-db
+
+      - name: Next Steps
+        run: |
+          echo "============================================"
+          echo "D1 DATABASE CREATED"
+          echo "============================================"
+          echo ""
+          echo "Copy the database_id from above and update wrangler.toml"
+          echo ""
+          echo "Then run locally:"
+          echo "  npm run generate-vapid"
+          echo ""
+          echo "And add these GitHub Secrets:"
+          echo "  - ANTHROPIC_API_KEY"
+          echo "  - VAPID_PUBLIC_KEY"
+          echo "  - VAPID_PRIVATE_KEY"
+          echo "============================================"
