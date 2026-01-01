@@ -572,8 +572,12 @@
         action.style.display = 'block';
       } else if (currentView === 'profile') {
         document.getElementById('headerTitle').textContent = 'Profile';
-        action.textContent = 'My Luvs';
-        action.style.display = currentUserId === currentUser?.user_id ? 'block' : 'none';
+        if (currentUserId === currentUser?.user_id) {
+          action.textContent = 'Edit Profile';
+          action.style.display = 'block';
+        } else {
+          action.style.display = 'none';
+        }
       } else if (currentView === 'edit') {
         document.getElementById('headerTitle').textContent = 'Edit Profile';
         action.style.display = 'none';
@@ -591,7 +595,7 @@
             showView('profile', currentUser.user_id);
           });
       } else if (currentView === 'profile' && currentUserId === currentUser?.user_id) {
-        showView('luvs');
+        showView('edit');
       }
     }
 
