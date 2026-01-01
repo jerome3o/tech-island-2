@@ -377,8 +377,10 @@
       </div>
       <form id="form-add-member">
         <div class="form-group">
-          <label class="form-label">Email</label>
-          <input type="email" class="form-input" name="email" placeholder="friend@example.com" required>
+          <label class="form-label">Select User</label>
+          <select class="form-select" name="user_id" id="member-user-select">
+            <option value="">-- Select a user --</option>
+          </select>
         </div>
         <div class="form-group">
           <label class="form-label">Nickname (optional)</label>
@@ -457,6 +459,7 @@
     let groups = [];
     let members = [];
     let categories = [];
+    let allUsers = [];
     let selectedCategory = 1;
     let splitType = 'equal';
 
@@ -503,6 +506,11 @@
       const data = await api('/categories');
       categories = data.categories;
       renderCategories();
+    }
+
+    async function loadAllUsers() {
+      const data = await api('/users');
+      allUsers = data.users;
     }
 
     // ============================================
@@ -825,11 +833,18 @@
     async function addMember(e) {
       e.preventDefault();
       const form = e.target;
+      const select = $('member-user-select');
+      const selectedOption = select.options[select.selectedIndex];
+
+      if (!select.value) {
+        alert('Please select a user');
+        return;
+      }
 
       await api(`/groups/${currentGroup.id}/members`, {
         method: 'POST',
         body: JSON.stringify({
-          email: form.email.value,
+          email: selectedOption.dataset.email,
           nickname: form.nickname.value || undefined
         })
       });
@@ -850,7 +865,22 @@
     $('back-btn').addEventListener('click', closeGroup);
     $('add-group-btn').addEventListener('click', () => openModal('modal-add-group'));
     $('add-expense-btn').addEventListener('click', openAddExpense);
-    $('add-member-btn').addEventListener('click', () => openModal('modal-add-member'));
+    $('add-member-btn').addEventListener('click', () => {
+      // Filter out users already in the group
+      const memberIds = members.map(m => m.user_id);
+      const availableUsers = allUsers.filter(u => !memberIds.includes(u.id));
+
+      $('member-user-select').innerHTML = `
+        <option value="">-- Select a user --</option>
+        ${availableUsers.map(u => `
+          <option value="${u.id}" data-email="${u.email}">
+            ${getName(u.email)} (${u.email})
+          </option>
+        `).join('')}
+      `;
+
+      openModal('modal-add-member');
+    });
 
     $('form-add-group').addEventListener('submit', createGroup);
     $('form-add-expense').addEventListener('submit', createExpense);
@@ -879,6 +909,7 @@
     async function init() {
       await loadUser();
       await loadCategories();
+      await loadAllUsers();
       await loadGroups();
     }
 

@@ -160,6 +160,20 @@ function simplifyDebts(balances: Map<string, number>, emails: Map<string, string
 }
 
 // ============================================
+// Users (for member picker)
+// ============================================
+
+app.get('/api/users', async (c) => {
+  const db = c.env.DB;
+  const result = await db.prepare(`
+    SELECT id, email FROM users
+    WHERE id NOT LIKE 'placeholder_%'
+    ORDER BY email
+  `).all<{ id: string; email: string }>();
+  return c.json({ users: result.results });
+});
+
+// ============================================
 // Categories
 // ============================================
 
