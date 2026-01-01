@@ -1,4 +1,4 @@
-# Towerhouse Apps Platform
+# Tech Island (2)
 
 > **For AI Agents**: This file is your guide to working in this codebase. Read it fully before making changes.
 
@@ -252,3 +252,4 @@ npm run generate-vapid
 - **workers.dev disabled**: Only the custom domain works (protected by Cloudflare Access)
 - **Observability**: Logging is enabled - check Cloudflare dashboard for logs
 - **TypeScript**: Always run `npm run typecheck` before committing
+- **Follow-up PRs**: If your changes are complete and ready to merge, but additional work is identified that needs a follow-up PR, **do not create the PR yourself**. Instead, provide the user with a GitHub PR creation link (e.g., `https://github.com/owner/repo/compare/main...branch-name?expand=1`) so they can review and create it manually. This is because Claude Code Remote can only manage one PR per session.
