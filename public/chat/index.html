@@ -216,17 +216,12 @@
       return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
     }
 
-    // Get display name from email
-    function getDisplayName(email) {
-      return email.split('@')[0];
-    }
-
     // Render a message
     function renderMessage(msg) {
       const isMine = msg.user_id === currentUserId;
       return `
         <div class="message ${isMine ? 'mine' : 'other'}" data-id="${msg.id}">
-          <div class="message-author">${getDisplayName(msg.user_email)}</div>
+          <div class="message-author">${escapeHtml(msg.user_name)}</div>
           <div class="message-content">${escapeHtml(msg.content)}</div>
           <div class="message-time">${formatTime(msg.created_at)}</div>
         </div>

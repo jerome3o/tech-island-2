@@ -22,6 +22,7 @@ interface GroupMember {
   group_id: number;
   user_id: string;
   user_email: string;
+  user_name: string; // Display name from users.alias
   nickname: string | null;
   joined_at: string;
 }
@@ -44,6 +45,7 @@ interface Expense {
   category_icon?: string;
   paid_by: string;
   paid_by_email?: string;
+  paid_by_name?: string; // Display name
   split_type: string;
   created_by: string;
   created_at: string;
@@ -53,6 +55,7 @@ interface Expense {
 interface ExpenseSplit {
   user_id: string;
   user_email: string;
+  user_name: string; // Display name
   amount: number;
 }
 
@@ -61,8 +64,10 @@ interface Settlement {
   group_id: number;
   from_user: string;
   from_email?: string;
+  from_name?: string; // Display name
   to_user: string;
   to_email?: string;
+  to_name?: string; // Display name
   amount: number;
   currency: string;
   note: string | null;
@@ -72,14 +77,17 @@ interface Settlement {
 interface Balance {
   user_id: string;
   user_email: string;
+  user_name: string; // Display name
   balance: number; // Positive = owed money, negative = owes money
 }
 
 interface Debt {
   from_user: string;
   from_email: string;
+  from_name: string; // Display name
   to_user: string;
   to_email: string;
+  to_name: string; // Display name
   amount: number;
 }
 
@@ -114,7 +122,11 @@ async function logActivity(
 }
 
 // Simplify debts using a greedy algorithm
-function simplifyDebts(balances: Map<string, number>, emails: Map<string, string>): Debt[] {
+function simplifyDebts(
+  balances: Map<string, number>,
+  emails: Map<string, string>,
+  names: Map<string, string>
+): Debt[] {
   const debts: Debt[] = [];
   const creditors: { userId: string; amount: number }[] = [];
   const debtors: { userId: string; amount: number }[] = [];
@@ -143,8 +155,10 @@ function simplifyDebts(balances: Map<string, number>, emails: Map<string, string
       debts.push({
         from_user: debtor.userId,
         from_email: emails.get(debtor.userId) || '',
+        from_name: names.get(debtor.userId) || '',
         to_user: creditor.userId,
         to_email: emails.get(creditor.userId) || '',
+        to_name: names.get(creditor.userId) || '',
         amount: Math.round(amount * 100) / 100
       });
     }
@@ -166,10 +180,10 @@ function simplifyDebts(balances: Map<string, number>, emails: Map<string, string
 app.get('/api/users', async (c) => {
   const db = c.env.DB;
   const result = await db.prepare(`
-    SELECT id, email FROM users
+    SELECT id, email, COALESCE(alias, email) as name FROM users
     WHERE id NOT LIKE 'placeholder_%'
-    ORDER BY email
-  `).all<{ id: string; email: string }>();
+    ORDER BY name
+  `).all<{ id: string; email: string; name: string }>();
   return c.json({ users: result.results });
 });
 
@@ -220,7 +234,11 @@ app.get('/api/groups/:id', async (c) => {
   }
 
   const members = await db.prepare(`
-    SELECT * FROM sw_group_members WHERE group_id = ? ORDER BY joined_at
+    SELECT gm.*, COALESCE(u.alias, gm.user_email) as user_name
+    FROM sw_group_members gm
+    LEFT JOIN users u ON gm.user_id = u.id
+    WHERE gm.group_id = ?
+    ORDER BY gm.joined_at
   `).bind(groupId).all<GroupMember>();
 
   return c.json({ group, members: members.results });
@@ -362,7 +380,7 @@ app.get('/api/groups/:id/expenses', async (c) => {
 
   const expenses = await db.prepare(`
     SELECT e.*, c.name as category_name, c.icon as category_icon,
-           u.email as paid_by_email
+           u.email as paid_by_email, COALESCE(u.alias, u.email) as paid_by_name
     FROM sw_expenses e
     JOIN sw_categories c ON e.category_id = c.id
     JOIN users u ON e.paid_by = u.id
@@ -382,7 +400,7 @@ app.get('/api/expenses/:id', async (c) => {
 
   const expense = await db.prepare(`
     SELECT e.*, c.name as category_name, c.icon as category_icon,
-           u.email as paid_by_email
+           u.email as paid_by_email, COALESCE(u.alias, u.email) as paid_by_name
     FROM sw_expenses e
     JOIN sw_categories c ON e.category_id = c.id
     JOIN users u ON e.paid_by = u.id
@@ -398,7 +416,7 @@ app.get('/api/expenses/:id', async (c) => {
   }
 
   const splits = await db.prepare(`
-    SELECT es.user_id, es.amount, u.email as user_email
+    SELECT es.user_id, es.amount, u.email as user_email, COALESCE(u.alias, u.email) as user_name
     FROM sw_expense_splits es
     JOIN users u ON es.user_id = u.id
     WHERE es.expense_id = ?
@@ -579,15 +597,20 @@ app.get('/api/groups/:id/balances', async (c) => {
 
   // Get all members
   const members = await db.prepare(`
-    SELECT user_id, user_email FROM sw_group_members WHERE group_id = ?
-  `).bind(groupId).all<{ user_id: string; user_email: string }>();
+    SELECT gm.user_id, gm.user_email, COALESCE(u.alias, gm.user_email) as user_name
+    FROM sw_group_members gm
+    LEFT JOIN users u ON gm.user_id = u.id
+    WHERE gm.group_id = ?
+  `).bind(groupId).all<{ user_id: string; user_email: string; user_name: string }>();
 
   const balances = new Map<string, number>();
   const emails = new Map<string, string>();
+  const names = new Map<string, string>();
 
   for (const member of members.results) {
     balances.set(member.user_id, 0);
     emails.set(member.user_id, member.user_email);
+    names.set(member.user_id, member.user_name);
   }
 
   // Calculate from expenses
@@ -630,12 +653,13 @@ app.get('/api/groups/:id/balances', async (c) => {
     balanceList.push({
       user_id: userId,
       user_email: emails.get(userId) || '',
+      user_name: names.get(userId) || '',
       balance: Math.round(balance * 100) / 100
     });
   });
 
   // Calculate simplified debts
-  const debts = simplifyDebts(balances, emails);
+  const debts = simplifyDebts(balances, emails, names);
 
   return c.json({ balances: balanceList, debts });
 });
@@ -656,8 +680,8 @@ app.get('/api/groups/:id/settlements', async (c) => {
 
   const settlements = await db.prepare(`
     SELECT s.*,
-           u1.email as from_email,
-           u2.email as to_email
+           u1.email as from_email, COALESCE(u1.alias, u1.email) as from_name,
+           u2.email as to_email, COALESCE(u2.alias, u2.email) as to_name
     FROM sw_settlements s
     JOIN users u1 ON s.from_user = u1.id
     JOIN users u2 ON s.to_user = u2.id
