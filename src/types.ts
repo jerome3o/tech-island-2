@@ -7,6 +7,7 @@ export interface Env {
   VAPID_PUBLIC_KEY: string;
   VAPID_PRIVATE_KEY: string;
   APP_URL: string;
+  NTFY_DEBUG_TOPIC?: string;
 }
 
 export interface User {
