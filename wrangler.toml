@@ -1,6 +1,7 @@
 name = "towerhouse-apps"
 main = "src/index.ts"
 compatibility_date = "2024-12-01"
+workers_dev = false  # Disable workers.dev URL, only allow custom domain
 
 # Static assets served from /public
 assets = { directory = "public" }
