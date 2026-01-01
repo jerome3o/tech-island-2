@@ -17,3 +17,10 @@ migrations_dir = "migrations"
 
 [vars]
 # APP_URL set via GitHub secret -> wrangler
+
+[observability]
+enabled = true
+
+[observability.logs]
+invocation_logs = true
+head_sampling_rate = 1
