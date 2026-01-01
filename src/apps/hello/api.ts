@@ -91,7 +91,7 @@ app.post('/api/notifications/test', async (c) => {
 
   try {
     console.log('Attempting to send push notification for user:', user.id);
-    const success = await sendPushNotification(c.env, subscription, {
+    const result = await sendPushNotification(c.env, subscription, {
       title: 'Test Notification from Hello App',
       body: `This is a test push notification sent at ${new Date().toLocaleTimeString()}`,
       icon: '/icons/icon-192.png',
@@ -100,10 +100,14 @@ app.post('/api/notifications/test', async (c) => {
     });
 
     return c.json({
-      success,
-      message: success
+      success: result.success,
+      message: result.success
         ? 'Push notification sent successfully!'
-        : 'Failed to send push notification. The push service rejected the request.'
+        : 'Failed to send push notification. The push service rejected the request.',
+      statusCode: result.statusCode,
+      statusText: result.statusText,
+      errorBody: result.errorBody,
+      errorMessage: result.errorMessage
     });
   } catch (error: any) {
     console.error('Push notification error:', error);
