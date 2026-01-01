@@ -480,6 +480,11 @@
       </div>
     </div>
 
+    <div id="editSection" class="luv-section" style="display: none;">
+      <button class="luv-btn" onclick="showView('edit')">Edit Profile ✏️</button>
+      <div class="luv-info">Update your bio, profile picture, and cover photo</div>
+    </div>
+
     <div id="luvSection" class="luv-section" style="display: none;">
       <button class="luv-btn" onclick="giveLuv()">Give Luv ❤️</button>
       <div class="luv-info" id="luvInfo"></div>
@@ -663,6 +668,14 @@
         const avatar = document.getElementById('profileAvatar');
         if (profile.profile_pic_key) {
           avatar.innerHTML = `<img src="/bebo/images/${profile.profile_pic_key}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
+        }
+
+        // Show edit section if viewing own profile
+        const editSection = document.getElementById('editSection');
+        if (userId === currentUser?.user_id) {
+          editSection.style.display = 'flex';
+        } else {
+          editSection.style.display = 'none';
         }
 
         // Show luv section if viewing someone else
