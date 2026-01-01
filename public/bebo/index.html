@@ -573,7 +573,9 @@
         <label>Profile Picture</label>
         <div class="image-upload" onclick="document.getElementById('profilePicInput').click()">
           <input type="file" id="profilePicInput" accept="image/*" onchange="previewImage(this, 'profilePicPreview')">
-          <div id="profilePicPreview">Click to upload profile picture</div>
+          <div id="profilePicPreview">
+            <div style="color: #999; margin-bottom: 0.5rem;">Click to upload profile picture</div>
+          </div>
         </div>
       </div>
 
@@ -581,7 +583,9 @@
         <label>Cover Photo</label>
         <div class="image-upload" onclick="document.getElementById('coverPhotoInput').click()">
           <input type="file" id="coverPhotoInput" accept="image/*" onchange="previewImage(this, 'coverPhotoPreview')">
-          <div id="coverPhotoPreview">Click to upload cover photo</div>
+          <div id="coverPhotoPreview">
+            <div style="color: #999; margin-bottom: 0.5rem;">Click to upload cover photo</div>
+          </div>
         </div>
       </div>
 
@@ -886,11 +890,30 @@
         // Set visibility checkbox (hidden = 0 means visible, so checkbox should be checked)
         document.getElementById('profileVisibleCheckbox').checked = profile.hidden === 0;
 
+        // Show current profile picture or empty state
         if (profilePicKey) {
-          document.getElementById('profilePicPreview').innerHTML = `<img src="/bebo/images/${profilePicKey}" class="image-preview">`;
+          document.getElementById('profilePicPreview').innerHTML = `
+            <div style="color: #666; font-weight: 600; margin-bottom: 0.5rem;">Current profile picture:</div>
+            <img src="/bebo/images/${profilePicKey}" class="image-preview">
+            <div style="color: #999; margin-top: 0.5rem; font-size: 0.9rem;">Click to change</div>
+          `;
+        } else {
+          document.getElementById('profilePicPreview').innerHTML = `
+            <div style="color: #999;">Click to upload profile picture</div>
+          `;
         }
+
+        // Show current cover photo or empty state
         if (coverPhotoKey) {
-          document.getElementById('coverPhotoPreview').innerHTML = `<img src="/bebo/images/${coverPhotoKey}" class="image-preview">`;
+          document.getElementById('coverPhotoPreview').innerHTML = `
+            <div style="color: #666; font-weight: 600; margin-bottom: 0.5rem;">Current cover photo:</div>
+            <img src="/bebo/images/${coverPhotoKey}" class="image-preview">
+            <div style="color: #999; margin-top: 0.5rem; font-size: 0.9rem;">Click to change</div>
+          `;
+        } else {
+          document.getElementById('coverPhotoPreview').innerHTML = `
+            <div style="color: #999;">Click to upload cover photo</div>
+          `;
         }
       } catch (error) {
         console.error('Failed to load profile for editing:', error);
@@ -905,7 +928,11 @@
       if (file) {
         const reader = new FileReader();
         reader.onload = (e) => {
-          preview.innerHTML = `<img src="${e.target.result}" class="image-preview">`;
+          preview.innerHTML = `
+            <div style="color: #6366f1; font-weight: 600; margin-bottom: 0.5rem;">New image selected:</div>
+            <img src="${e.target.result}" class="image-preview">
+            <div style="color: #999; margin-top: 0.5rem; font-size: 0.9rem;">This will be saved when you click "Save Profile"</div>
+          `;
         };
         reader.readAsDataURL(file);
       }
