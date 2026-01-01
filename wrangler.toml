@@ -11,8 +11,7 @@ assets = { directory = "public" }
 [[d1_databases]]
 binding = "DB"
 database_name = "towerhouse-db"
-# database_id set via: wrangler d1 info towerhouse-db
-database_id = "${D1_DATABASE_ID}"
+database_id = "593c5030-9c5e-4b2f-b7fb-eca50b232dbb"
 migrations_dir = "migrations"
 
 [vars]
