@@ -533,6 +533,16 @@
         <textarea id="bioInput" placeholder="Tell the world about yourself..."></textarea>
       </div>
 
+      <div class="form-group">
+        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+          <input type="checkbox" id="profileVisibleCheckbox" style="width: auto; cursor: pointer;">
+          <span>Show my profile in the directory</span>
+        </label>
+        <div style="font-size: 0.85rem; color: #666; margin-top: 0.5rem;">
+          If unchecked, only people who have your profile link can see your profile. Your profile will automatically be shown if you add a bio or photos.
+        </div>
+      </div>
+
       <button class="btn-primary" onclick="saveProfile()" id="saveBtn">Save Profile</button>
     </div>
   </div>
@@ -797,6 +807,9 @@
         profilePicKey = profile.profile_pic_key;
         coverPhotoKey = profile.cover_photo_key;
 
+        // Set visibility checkbox (hidden = 0 means visible, so checkbox should be checked)
+        document.getElementById('profileVisibleCheckbox').checked = profile.hidden === 0;
+
         if (profilePicKey) {
           document.getElementById('profilePicPreview').innerHTML = `<img src="/bebo/images/${profilePicKey}" class="image-preview">`;
         }
@@ -851,10 +864,16 @@
 
         // Update profile
         const bio = document.getElementById('bioInput').value;
+        const isVisible = document.getElementById('profileVisibleCheckbox').checked;
         await fetch('/bebo/api/profile', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ bio, profile_pic_key: profilePicKey, cover_photo_key: coverPhotoKey })
+          body: JSON.stringify({
+            bio,
+            profile_pic_key: profilePicKey,
+            cover_photo_key: coverPhotoKey,
+            hidden: !isVisible // Convert checkbox (visible) to hidden flag
+          })
         });
 
         showView('profile', currentUser.id);
