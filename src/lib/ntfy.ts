@@ -26,6 +26,7 @@ export async function sendNtfyNotification(
   }
 
   const url = `https://ntfy.sh/${topic}`;
+  console.log(`Sending ntfy notification to ${url}:`, notification.title);
 
   try {
     const response = await fetch(url, {
@@ -41,6 +42,8 @@ export async function sendNtfyNotification(
 
     if (!response.ok) {
       console.error('Failed to send ntfy notification:', response.status, await response.text());
+    } else {
+      console.log('Successfully sent ntfy notification:', notification.title);
     }
   } catch (error) {
     console.error('Error sending ntfy notification:', error);

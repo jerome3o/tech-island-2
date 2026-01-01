@@ -41,10 +41,12 @@ jobs:
             ANTHROPIC_API_KEY
             VAPID_PUBLIC_KEY
             VAPID_PRIVATE_KEY
+            NTFY_DEBUG_TOPIC
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           VAPID_PUBLIC_KEY: ${{ secrets.VAPID_PUBLIC_KEY }}
           VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
+          NTFY_DEBUG_TOPIC: ${{ secrets.NTFY_DEBUG_TOPIC }}
 
       - name: Deploy Worker
         uses: cloudflare/wrangler-action@v3
