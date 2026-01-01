@@ -176,6 +176,32 @@ if (subscription) {
 }
 ```
 
+### Debug Notifications (`src/lib/ntfy.ts`)
+
+**IMPORTANT**: When adding new features, consider adding helpful debug notifications for key events. This helps with development and debugging.
+
+```typescript
+import { sendNtfyNotification } from '../../lib/ntfy';
+
+// Send notification when something important happens
+sendNtfyNotification(c.env, {
+  title: '🎯 Your Feature Title',
+  message: 'Description of what happened',
+  priority: 'default', // min, low, default, high, max
+  tags: ['feature-name', 'event-type'],
+  click: `${c.env.APP_URL}/your-app-name/`, // Optional: URL to open on click
+}).catch(err => console.error('Failed to send ntfy notification:', err));
+```
+
+Good events to notify on:
+- Game completions (with winner and scores)
+- Task completions or milestones
+- Important state changes
+- Errors or failures that need attention
+- Background job completions
+
+Notifications are sent to ntfy.sh and require `NTFY_DEBUG_TOPIC` to be configured. The function handles missing config gracefully (won't crash if not set).
+
 ## Project Structure
 
 ```
@@ -200,7 +226,8 @@ if (subscription) {
 │   │   ├── auth.ts               # Cloudflare Access auth
 │   │   ├── db.ts                 # D1 database helpers
 │   │   ├── claude.ts             # Anthropic API wrapper
-│   │   └── push.ts               # Push notification helpers
+│   │   ├── push.ts               # Push notification helpers
+│   │   └── ntfy.ts               # Debug notifications via ntfy.sh
 │   └── apps/
 │       ├── _template/            # Copy this for new apps
 │       ├── home/                 # Landing page API
@@ -230,6 +257,7 @@ Deployment is automatic via GitHub Actions on push to `main`.
 - `VAPID_PUBLIC_KEY` - For push notifications
 - `VAPID_PRIVATE_KEY` - For push notifications
 - `APP_URL` - The app URL (e.g., `https://app.towerhouse.london`)
+- `NTFY_DEBUG_TOPIC` - (Optional) ntfy.sh topic for debug notifications
 
 **Generate VAPID keys locally:**
 ```bash
@@ -244,6 +272,7 @@ npm run generate-vapid
 | Splits | `/splits` | Splitwise clone - expense sharing with groups, balances, settlements |
 | Chat | `/chat` | Shared group chat for all users (polls every 2s) |
 | Hello | `/hello` | Example app with greeting, AI greeting, visit counter |
+| Boggle | `/boggle` | Multiplayer word game with real-time scoring and ntfy notifications |
 
 ## Notes for Agents
 
@@ -252,3 +281,4 @@ npm run generate-vapid
 - **workers.dev disabled**: Only the custom domain works (protected by Cloudflare Access)
 - **Observability**: Logging is enabled - check Cloudflare dashboard for logs
 - **TypeScript**: Always run `npm run typecheck` before committing
+- **Debug notifications**: When adding new features, consider adding ntfy notifications for important events (see Debug Notifications section)
