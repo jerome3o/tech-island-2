@@ -406,6 +406,18 @@
     <!-- Lobby List View -->
     <div id="lobbyListView" class="view active">
       <div class="card">
+        <h2 style="margin-bottom: 20px;">Your Profile</h2>
+        <div class="form-group">
+          <label>Display Name:</label>
+          <div style="display: flex; gap: 10px;">
+            <input type="text" id="aliasInput" placeholder="Enter your display name" maxlength="20">
+            <button onclick="setAlias()" style="flex: 0 0 auto; min-width: 100px;">Save</button>
+          </div>
+          <div id="aliasMessage" style="margin-top: 10px;"></div>
+        </div>
+      </div>
+
+      <div class="card">
         <h2 style="margin-bottom: 20px;">Active Games</h2>
         <div class="actions">
           <button onclick="showCreateGame()">Create New Game</button>
@@ -494,7 +506,67 @@
 
     // Initialize
     async function init() {
+      await loadUserProfile();
       await loadGames();
+    }
+
+    // Load user profile
+    async function loadUserProfile() {
+      try {
+        const response = await fetch('/api/me');
+        const user = await response.json();
+        currentUserId = user.id;
+
+        // Set alias input value
+        const aliasInput = document.getElementById('aliasInput');
+        if (user.alias) {
+          aliasInput.value = user.alias;
+        }
+      } catch (error) {
+        console.error('Failed to load user profile:', error);
+      }
+    }
+
+    // Set user alias
+    async function setAlias() {
+      const aliasInput = document.getElementById('aliasInput');
+      const alias = aliasInput.value.trim();
+      const messageDiv = document.getElementById('aliasMessage');
+
+      if (!alias) {
+        messageDiv.innerHTML = '<div class="message error">Please enter a display name</div>';
+        setTimeout(() => messageDiv.innerHTML = '', 3000);
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/me/alias', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ alias })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          messageDiv.innerHTML = '<div class="message success">✓ Display name saved!</div>';
+          setTimeout(() => messageDiv.innerHTML = '', 2000);
+        } else {
+          messageDiv.innerHTML = `<div class="message error">✗ ${data.error}</div>`;
+          setTimeout(() => messageDiv.innerHTML = '', 3000);
+        }
+      } catch (error) {
+        console.error('Failed to set alias:', error);
+        messageDiv.innerHTML = '<div class="message error">Failed to save display name</div>';
+        setTimeout(() => messageDiv.innerHTML = '', 3000);
+      }
+    }
+
+    // Get display name for a player
+    function getDisplayName(player) {
+      if (player.alias) return player.alias;
+      if (player.email) return player.email.split('@')[0];
+      return player.user_id.substring(0, 8);
     }
 
     // Get adjacent tile positions (for 4x4 board)
@@ -517,8 +589,22 @@
 
     // Handle tile click
     function onTileClick(index) {
-      // Can't click if already in path
-      if (selectedPath.includes(index)) return;
+      // If clicking a tile that's already selected, remove it and everything after
+      const pathIndex = selectedPath.indexOf(index);
+      if (pathIndex !== -1) {
+        // Remove this tile and all after it
+        selectedPath = selectedPath.slice(0, pathIndex);
+
+        // Rebuild word
+        currentWord = '';
+        for (const idx of selectedPath) {
+          currentWord += currentBoard[idx];
+        }
+
+        updateWordDisplay();
+        updateTileStates();
+        return;
+      }
 
       // If path is not empty, must be adjacent to last tile
       if (selectedPath.length > 0) {
@@ -573,7 +659,7 @@
       }
     }
 
-    // Update tile states (highlight selected, disable invalid)
+    // Update tile states (highlight selected only)
     function updateTileStates() {
       const tiles = document.querySelectorAll('.tile');
 
@@ -584,14 +670,6 @@
         // Highlight selected tiles
         if (selectedPath.includes(index)) {
           tile.classList.add('selected');
-        }
-        // Disable tiles that can't be selected next
-        else if (selectedPath.length > 0) {
-          const lastTile = selectedPath[selectedPath.length - 1];
-          const adjacentTiles = getAdjacentTiles(lastTile);
-          if (!adjacentTiles.includes(index)) {
-            tile.classList.add('disabled');
-          }
         }
       });
     }
@@ -780,7 +858,7 @@
       const actionsDiv = document.getElementById('lobbyActions');
 
       playersDiv.innerHTML = data.players.map(p =>
-        `<div class="player-tag">${p.user_id.substring(0, 8)}</div>`
+        `<div class="player-tag">${getDisplayName(p)}</div>`
       ).join('');
 
       // Show start/leave buttons
@@ -812,7 +890,7 @@
       const scoreboardDiv = document.getElementById('scoreboard');
       scoreboardDiv.innerHTML = data.players.map(p => `
         <div class="player-score">
-          <span class="player-name">${p.user_id.substring(0, 8)}</span>
+          <span class="player-name">${getDisplayName(p)}</span>
           <span class="player-points">${p.score} pts</span>
         </div>
       `).join('');
@@ -845,7 +923,7 @@
       scoresDiv.innerHTML = sortedPlayers.map((p, index) => `
         <div class="player-score ${p.score === maxScore && maxScore > 0 ? 'winner' : ''}">
           <span class="player-name">
-            ${index + 1}. ${p.user_id.substring(0, 8)}
+            ${index + 1}. ${getDisplayName(p)}
             ${p.score === maxScore && maxScore > 0 ? '🏆' : ''}
           </span>
           <span class="player-points">${p.score} pts</span>
@@ -855,18 +933,24 @@
       // All words
       if (data.allWords) {
         const wordsContainer = document.getElementById('allWordsContainer');
-        wordsContainer.innerHTML = data.allWords.map(userWords => `
-          <div class="words-found">
-            <h3>${userWords.userId.substring(0, 8)}'s Words (${userWords.finalScore} pts):</h3>
-            <div class="word-list">
-              ${userWords.words.map(w => `
-                <div class="word-tag ${w.isDuplicate ? 'duplicate' : ''}">
-                  ${w.word} (${w.actualPoints} pts)
-                </div>
-              `).join('')}
+        wordsContainer.innerHTML = data.allWords.map(userWords => {
+          // Find player info for display name
+          const player = data.players.find(p => p.user_id === userWords.userId);
+          const displayName = player ? getDisplayName(player) : userWords.userId.substring(0, 8);
+
+          return `
+            <div class="words-found">
+              <h3>${displayName}'s Words (${userWords.finalScore} pts):</h3>
+              <div class="word-list">
+                ${userWords.words.map(w => `
+                  <div class="word-tag ${w.isDuplicate ? 'duplicate' : ''}">
+                    ${w.word} (${w.actualPoints} pts)
+                  </div>
+                `).join('')}
+              </div>
             </div>
-          </div>
-        `).join('');
+          `;
+        }).join('');
       }
     }
 
