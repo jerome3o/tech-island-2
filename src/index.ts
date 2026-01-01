@@ -18,6 +18,7 @@ import splitsApp from './apps/splits/api';
 import boggleApp from './apps/boggle/api';
 import beboApp from './apps/bebo/api';
 import featureRequestsApp from './apps/feature-requests/api';
+import flashcardsApp from './apps/flashcards/api';
 
 const app = new Hono<AppContext>();
 
@@ -124,6 +125,7 @@ app.route('/splits', splitsApp);
 app.route('/boggle', boggleApp);
 app.route('/bebo', beboApp);
 app.route('/feature-requests', featureRequestsApp);
+app.route('/flashcards', flashcardsApp);
 
 // ============================================
 // Static file serving

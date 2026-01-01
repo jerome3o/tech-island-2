@@ -9,6 +9,7 @@ export interface Env {
   VAPID_PRIVATE_KEY: string;
   APP_URL: string;
   NTFY_DEBUG_TOPIC?: string;
+  FLASHCARD_AUDIO: R2Bucket;
 }
 
 export interface User {
