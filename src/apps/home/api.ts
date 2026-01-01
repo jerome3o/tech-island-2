@@ -7,13 +7,19 @@ const app = new Hono<AppContext>();
 app.get('/api/apps', (c) => {
   const apps = [
     {
+      id: 'chat',
+      name: 'Chat',
+      description: 'Group chat for everyone',
+      path: '/chat',
+      icon: '💬'
+    },
+    {
       id: 'hello',
       name: 'Hello World',
       description: 'A simple example app',
       path: '/hello',
       icon: '👋'
     }
-    // Add new apps here as they're created
   ];
 
   return c.json({ apps });

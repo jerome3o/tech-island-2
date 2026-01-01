@@ -12,6 +12,7 @@ import { saveSubscription, deleteSubscription } from './lib/push';
 // Import apps
 import homeApp from './apps/home/api';
 import helloApp from './apps/hello/api';
+import chatApp from './apps/chat/api';
 
 const app = new Hono<AppContext>();
 
@@ -92,10 +93,7 @@ app.post('/api/push/test', async (c) => {
 // Mount apps at their paths
 app.route('/', homeApp);
 app.route('/hello', helloApp);
-
-// Add new apps here:
-// app.route('/flashcards', flashcardsApp);
-// app.route('/chat', chatApp);
+app.route('/chat', chatApp);
 
 // ============================================
 // Static file serving

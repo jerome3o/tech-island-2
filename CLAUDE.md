@@ -241,6 +241,7 @@ npm run generate-vapid
 | App | Path | Description |
 |-----|------|-------------|
 | Home | `/` | App launcher, user info, notification setup |
+| Chat | `/chat` | Shared group chat for all users (polls every 2s) |
 | Hello | `/hello` | Example app with greeting, AI greeting, visit counter |
 
 ## Notes for Agents
