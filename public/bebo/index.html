@@ -455,7 +455,12 @@
   <!-- Directory View -->
   <div id="directoryView" class="view active">
     <div class="card">
-      <h2 class="section-title">Find Your Friends</h2>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <h2 class="section-title" style="margin-bottom: 0;">Find Your Friends</h2>
+        <button class="luv-btn" onclick="showView('edit')" style="padding: 0.5rem 1rem;">
+          Edit My Profile ✏️
+        </button>
+      </div>
       <div id="userGrid" class="user-grid">
         <div class="loading">Loading users...</div>
       </div>
@@ -572,7 +577,7 @@
         action.style.display = 'block';
       } else if (currentView === 'profile') {
         document.getElementById('headerTitle').textContent = 'Profile';
-        if (currentUserId === currentUser?.user_id) {
+        if (currentUserId === currentUser?.id) {
           action.textContent = 'Edit Profile';
           action.style.display = 'block';
         } else {
@@ -589,12 +594,12 @@
 
     function handleHeaderAction() {
       if (currentView === 'directory') {
-        fetch('/bebo/api/profile/' + currentUser.user_id)
+        fetch('/bebo/api/profile/' + currentUser.id)
           .then(r => r.json())
           .then(profile => {
-            showView('profile', currentUser.user_id);
+            showView('profile', currentUser.id);
           });
-      } else if (currentView === 'profile' && currentUserId === currentUser?.user_id) {
+      } else if (currentView === 'profile' && currentUserId === currentUser?.id) {
         showView('edit');
       }
     }
@@ -676,7 +681,7 @@
 
         // Show edit section if viewing own profile
         const editSection = document.getElementById('editSection');
-        if (userId === currentUser?.user_id) {
+        if (userId === currentUser?.id) {
           editSection.style.display = 'flex';
         } else {
           editSection.style.display = 'none';
@@ -684,7 +689,7 @@
 
         // Show luv section if viewing someone else
         const luvSection = document.getElementById('luvSection');
-        if (userId !== currentUser?.user_id) {
+        if (userId !== currentUser?.id) {
           luvSection.style.display = 'flex';
           const alreadyGave = luvState.given.find(g => g.to_user_id === userId);
           const luvBtn = luvSection.querySelector('.luv-btn');
@@ -708,7 +713,7 @@
 
         // Hide wall post form if viewing own profile
         const wallForm = document.getElementById('wallPostForm');
-        if (userId === currentUser?.user_id) {
+        if (userId === currentUser?.id) {
           wallForm.style.display = 'none';
         } else {
           wallForm.style.display = 'block';
@@ -786,7 +791,7 @@
     // Load Edit Profile
     async function loadEditProfile() {
       try {
-        const profile = await fetch(`/bebo/api/profile/${currentUser.user_id}`).then(r => r.json());
+        const profile = await fetch(`/bebo/api/profile/${currentUser.id}`).then(r => r.json());
 
         document.getElementById('bioInput').value = profile.bio || '';
         profilePicKey = profile.profile_pic_key;
@@ -852,7 +857,7 @@
           body: JSON.stringify({ bio, profile_pic_key: profilePicKey, cover_photo_key: coverPhotoKey })
         });
 
-        showView('profile', currentUser.user_id);
+        showView('profile', currentUser.id);
       } catch (error) {
         alert('Failed to save profile');
       } finally {
@@ -913,12 +918,16 @@
       return date.toLocaleDateString();
     }
 
-    // Get current user from home page API
-    fetch('/api/user')
+    // Get current user
+    fetch('/api/me')
       .then(r => r.json())
       .then(user => {
         currentUser = user;
+        console.log('Current user loaded:', currentUser);
         loadDirectory();
+      })
+      .catch(err => {
+        console.error('Failed to load current user:', err);
       });
 
     // Handle edit profile link from directory
