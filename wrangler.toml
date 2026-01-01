@@ -16,6 +16,10 @@ database_id = "593c5030-9c5e-4b2f-b7fb-eca50b232dbb"
 migrations_dir = "migrations"
 
 [[r2_buckets]]
+binding = "IMAGES"
+bucket_name = "tech-island-2-images"
+
+[[r2_buckets]]
 binding = "FLASHCARD_AUDIO"
 bucket_name = "tech-island-2-flashcard-audio"
 

@@ -14,6 +14,20 @@ app.get('/api/apps', (c) => {
       icon: '🀄'
     },
     {
+      id: 'feature-requests',
+      name: 'Feature Requests',
+      description: 'Share ideas and vote on new features',
+      path: '/feature-requests',
+      icon: '💡'
+    },
+    {
+      id: 'bebo',
+      name: 'Bebo',
+      description: 'Social profiles, wall posts, and daily luvs',
+      path: '/bebo',
+      icon: '💜'
+    },
+    {
       id: 'boggle',
       name: 'Boggle',
       description: 'Multiplayer word game with real-time competition',
