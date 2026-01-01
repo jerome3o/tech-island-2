@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Paint Studio</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f5f5f5;
+      padding-bottom: 80px;
+    }
+
+    .header {
+      background: white;
+      padding: 16px;
+      border-bottom: 1px solid #e0e0e0;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .back-btn {
+      background: none;
+      border: none;
+      font-size: 24px;
+      cursor: pointer;
+      padding: 4px;
+    }
+
+    .header h1 {
+      font-size: 20px;
+      flex: 1;
+    }
+
+    .view {
+      display: none;
+    }
+
+    .view.active {
+      display: block;
+    }
+
+    /* Feed View */
+    .feed {
+      padding: 16px;
+    }
+
+    .artwork-card {
+      background: white;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      cursor: pointer;
+    }
+
+    .artwork-header {
+      display: flex;
+      align-items: center;
+      padding: 12px;
+      gap: 10px;
+    }
+
+    .profile-pic {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: bold;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+
+    .profile-pic img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 50%;
+    }
+
+    .artwork-author {
+      flex: 1;
+    }
+
+    .artwork-author-name {
+      font-weight: 600;
+      font-size: 15px;
+    }
+
+    .artwork-time {
+      font-size: 12px;
+      color: #666;
+    }
+
+    .artwork-image {
+      width: 100%;
+      aspect-ratio: 1;
+      object-fit: contain;
+      background: white;
+      border-top: 1px solid #e0e0e0;
+      border-bottom: 1px solid #e0e0e0;
+    }
+
+    .artwork-footer {
+      padding: 12px;
+      font-size: 14px;
+      color: #666;
+    }
+
+    /* Canvas View */
+    .canvas-container {
+      background: white;
+      padding: 16px;
+      min-height: calc(100vh - 200px);
+    }
+
+    .canvas-wrapper {
+      border: 2px solid #ccc;
+      border-radius: 8px;
+      overflow: hidden;
+      margin-bottom: 16px;
+      background: white;
+      touch-action: none;
+    }
+
+    #canvas {
+      display: block;
+      width: 100%;
+      cursor: crosshair;
+      touch-action: none;
+    }
+
+    .tools {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+
+    .tool-btn {
+      padding: 10px 16px;
+      border: 2px solid #ddd;
+      border-radius: 8px;
+      background: white;
+      cursor: pointer;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 44px;
+    }
+
+    .tool-btn.active {
+      border-color: #667eea;
+      background: #f0f4ff;
+      color: #667eea;
+    }
+
+    .color-picker {
+      width: 50px;
+      height: 44px;
+      border: 2px solid #ddd;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    .size-slider {
+      flex: 1;
+      min-width: 100px;
+    }
+
+    .action-btns {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .btn {
+      flex: 1;
+      padding: 14px;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      min-height: 44px;
+    }
+
+    .btn-primary {
+      background: #667eea;
+      color: white;
+    }
+
+    .btn-secondary {
+      background: #e0e0e0;
+      color: #333;
+    }
+
+    .btn-danger {
+      background: #ef4444;
+      color: white;
+    }
+
+    /* Detail View */
+    .detail-view {
+      background: white;
+      min-height: 100vh;
+    }
+
+    .detail-image {
+      width: 100%;
+      aspect-ratio: 1;
+      object-fit: contain;
+      background: white;
+      border-bottom: 1px solid #e0e0e0;
+    }
+
+    .detail-header {
+      padding: 16px;
+      border-bottom: 1px solid #e0e0e0;
+    }
+
+    .detail-author {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .comments-section {
+      padding: 16px;
+    }
+
+    .comments-title {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 16px;
+    }
+
+    .comment {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 16px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid #f0f0f0;
+    }
+
+    .comment:last-child {
+      border-bottom: none;
+    }
+
+    .comment.critique {
+      background: #fff9e6;
+      padding: 12px;
+      border-radius: 8px;
+      border: 2px solid #ffd700;
+    }
+
+    .comment-content {
+      flex: 1;
+    }
+
+    .comment-author {
+      font-weight: 600;
+      font-size: 14px;
+      margin-bottom: 4px;
+    }
+
+    .comment-text {
+      font-size: 14px;
+      color: #333;
+      line-height: 1.4;
+    }
+
+    .comment-time {
+      font-size: 12px;
+      color: #999;
+      margin-top: 4px;
+    }
+
+    .critique-badge {
+      display: inline-block;
+      background: #ffd700;
+      color: #333;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      margin-left: 6px;
+    }
+
+    .comment-form {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: white;
+      border-top: 1px solid #e0e0e0;
+      padding: 12px;
+      display: flex;
+      gap: 8px;
+    }
+
+    .comment-input {
+      flex: 1;
+      padding: 12px;
+      border: 1px solid #ddd;
+      border-radius: 20px;
+      font-size: 14px;
+      font-family: inherit;
+    }
+
+    .comment-submit {
+      padding: 12px 20px;
+      background: #667eea;
+      color: white;
+      border: none;
+      border-radius: 20px;
+      font-weight: 600;
+      cursor: pointer;
+      min-height: 44px;
+    }
+
+    .critique-btn {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+      color: #333;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-bottom: 16px;
+      font-size: 16px;
+      min-height: 44px;
+    }
+
+    .fab {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background: #667eea;
+      color: white;
+      border: none;
+      font-size: 28px;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: #666;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: #999;
+    }
+
+    .empty-state-icon {
+      font-size: 64px;
+      margin-bottom: 16px;
+    }
+
+    @media (max-width: 768px) {
+      .feed {
+        padding: 12px;
+      }
+
+      .artwork-card {
+        margin-bottom: 16px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Feed View -->
+  <div id="feedView" class="view active">
+    <div class="header">
+      <a href="/" class="back-btn">←</a>
+      <h1>🎨 Paint Studio</h1>
+    </div>
+    <div class="feed" id="feedContainer">
+      <div class="loading">Loading artwork...</div>
+    </div>
+    <button class="fab" onclick="showCanvas()">+</button>
+  </div>
+
+  <!-- Canvas View -->
+  <div id="canvasView" class="view">
+    <div class="header">
+      <button class="back-btn" onclick="showFeed()">←</button>
+      <h1>Create Artwork</h1>
+    </div>
+    <div class="canvas-container">
+      <div class="tools">
+        <button class="tool-btn active" onclick="setTool('brush')">🖌️ Brush</button>
+        <button class="tool-btn" onclick="setTool('eraser')">🧽 Eraser</button>
+        <input type="color" class="color-picker" id="colorPicker" value="#000000">
+        <input type="range" class="size-slider" id="sizeSlider" min="1" max="50" value="5">
+      </div>
+      <div class="canvas-wrapper">
+        <canvas id="canvas" width="800" height="800"></canvas>
+      </div>
+      <div class="action-btns">
+        <button class="btn btn-secondary" onclick="clearCanvas()">Clear</button>
+        <button class="btn btn-primary" onclick="saveArtwork()">Share</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Detail View -->
+  <div id="detailView" class="view">
+    <div class="header">
+      <button class="back-btn" onclick="showFeed()">←</button>
+      <h1>Artwork</h1>
+    </div>
+    <div class="detail-view">
+      <img id="detailImage" class="detail-image" alt="Artwork">
+      <div class="detail-header">
+        <div class="detail-author">
+          <div class="profile-pic" id="detailProfilePic"></div>
+          <div>
+            <div class="artwork-author-name" id="detailAuthor"></div>
+            <div class="artwork-time" id="detailTime"></div>
+          </div>
+        </div>
+      </div>
+      <div class="comments-section">
+        <div id="critiqueButtonContainer"></div>
+        <h2 class="comments-title">Comments</h2>
+        <div id="commentsContainer"></div>
+      </div>
+      <div class="comment-form">
+        <input type="text" class="comment-input" id="commentInput" placeholder="Add a comment...">
+        <button class="comment-submit" onclick="submitComment()">Post</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let currentArtworkId = null;
+    let currentUserId = null;
+    let canvas, ctx;
+    let isDrawing = false;
+    let currentTool = 'brush';
+    let currentColor = '#000000';
+    let currentSize = 5;
+
+    // Initialize
+    async function init() {
+      loadFeed();
+      initCanvas();
+    }
+
+    // Canvas setup
+    function initCanvas() {
+      canvas = document.getElementById('canvas');
+      ctx = canvas.getContext('2d');
+      ctx.fillStyle = 'white';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+
+      // Mouse events
+      canvas.addEventListener('mousedown', startDrawing);
+      canvas.addEventListener('mousemove', draw);
+      canvas.addEventListener('mouseup', stopDrawing);
+      canvas.addEventListener('mouseout', stopDrawing);
+
+      // Touch events
+      canvas.addEventListener('touchstart', handleTouchStart);
+      canvas.addEventListener('touchmove', handleTouchMove);
+      canvas.addEventListener('touchend', stopDrawing);
+    }
+
+    function handleTouchStart(e) {
+      e.preventDefault();
+      const touch = e.touches[0];
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      const x = (touch.clientX - rect.left) * scaleX;
+      const y = (touch.clientY - rect.top) * scaleY;
+
+      isDrawing = true;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+    }
+
+    function handleTouchMove(e) {
+      if (!isDrawing) return;
+      e.preventDefault();
+      const touch = e.touches[0];
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      const x = (touch.clientX - rect.left) * scaleX;
+      const y = (touch.clientY - rect.top) * scaleY;
+
+      if (currentTool === 'eraser') {
+        ctx.globalCompositeOperation = 'destination-out';
+      } else {
+        ctx.globalCompositeOperation = 'source-over';
+      }
+
+      ctx.strokeStyle = currentColor;
+      ctx.lineWidth = currentSize;
+      ctx.lineTo(x, y);
+      ctx.stroke();
+    }
+
+    function startDrawing(e) {
+      isDrawing = true;
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      const x = (e.clientX - rect.left) * scaleX;
+      const y = (e.clientY - rect.top) * scaleY;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+    }
+
+    function draw(e) {
+      if (!isDrawing) return;
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      const x = (e.clientX - rect.left) * scaleX;
+      const y = (e.clientY - rect.top) * scaleY;
+
+      if (currentTool === 'eraser') {
+        ctx.globalCompositeOperation = 'destination-out';
+      } else {
+        ctx.globalCompositeOperation = 'source-over';
+      }
+
+      ctx.strokeStyle = currentColor;
+      ctx.lineWidth = currentSize;
+      ctx.lineTo(x, y);
+      ctx.stroke();
+    }
+
+    function stopDrawing() {
+      isDrawing = false;
+    }
+
+    function setTool(tool) {
+      currentTool = tool;
+      document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('active'));
+      event.target.classList.add('active');
+    }
+
+    function clearCanvas() {
+      ctx.fillStyle = 'white';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+
+    document.getElementById('colorPicker').addEventListener('change', (e) => {
+      currentColor = e.target.value;
+    });
+
+    document.getElementById('sizeSlider').addEventListener('input', (e) => {
+      currentSize = e.target.value;
+    });
+
+    // Load feed
+    async function loadFeed() {
+      try {
+        const res = await fetch('/paint/api/feed');
+        const artworks = await res.json();
+
+        const container = document.getElementById('feedContainer');
+
+        if (artworks.length === 0) {
+          container.innerHTML = `
+            <div class="empty-state">
+              <div class="empty-state-icon">🎨</div>
+              <h3>No artwork yet</h3>
+              <p>Be the first to share your creation!</p>
+            </div>
+          `;
+          return;
+        }
+
+        container.innerHTML = artworks.map(art => `
+          <div class="artwork-card" onclick="showDetail(${art.id})">
+            <div class="artwork-header">
+              <div class="profile-pic">
+                ${art.profile_pic_key
+                  ? `<img src="/bebo/images/${art.profile_pic_key}" alt="${art.user_name}">`
+                  : art.user_name[0].toUpperCase()
+                }
+              </div>
+              <div class="artwork-author">
+                <div class="artwork-author-name">${art.user_name}</div>
+                <div class="artwork-time">${formatTime(art.created_at)}</div>
+              </div>
+            </div>
+            <img src="artwork-${art.id}" class="artwork-image" alt="Artwork by ${art.user_name}">
+            <div class="artwork-footer">
+              💬 ${art.comment_count} comment${art.comment_count !== 1 ? 's' : ''}
+            </div>
+          </div>
+        `).join('');
+
+        // Load artwork images
+        artworks.forEach(async (art) => {
+          const detailRes = await fetch(`/paint/api/artwork/${art.id}`);
+          const detail = await detailRes.json();
+          const img = container.querySelector(`img[src="artwork-${art.id}"]`);
+          if (img && detail.image_data) {
+            img.src = detail.image_data;
+          }
+        });
+      } catch (error) {
+        console.error('Error loading feed:', error);
+        document.getElementById('feedContainer').innerHTML = '<div class="loading">Error loading feed</div>';
+      }
+    }
+
+    // Show detail view
+    async function showDetail(artworkId) {
+      currentArtworkId = artworkId;
+
+      try {
+        const res = await fetch(`/paint/api/artwork/${artworkId}`);
+        const artwork = await res.json();
+
+        currentUserId = artwork.user_id;
+
+        document.getElementById('detailImage').src = artwork.image_data;
+        document.getElementById('detailAuthor').textContent = artwork.user_name;
+        document.getElementById('detailTime').textContent = formatTime(artwork.created_at);
+
+        const profilePic = document.getElementById('detailProfilePic');
+        if (artwork.profile_pic_key) {
+          profilePic.innerHTML = `<img src="/bebo/images/${artwork.profile_pic_key}" alt="${artwork.user_name}">`;
+        } else {
+          profilePic.textContent = artwork.user_name[0].toUpperCase();
+        }
+
+        // Show critique button if user is the creator
+        const critiqueContainer = document.getElementById('critiqueButtonContainer');
+        const currentUserRes = await fetch('/api/user');
+        const currentUser = await currentUserRes.json();
+
+        if (currentUser.id === artwork.user_id) {
+          critiqueContainer.innerHTML = '<button class="critique-btn" onclick="getCritique()">✨ Get AI Critique</button>';
+        } else {
+          critiqueContainer.innerHTML = '';
+        }
+
+        // Load comments
+        renderComments(artwork.comments);
+
+        showView('detailView');
+      } catch (error) {
+        console.error('Error loading artwork:', error);
+      }
+    }
+
+    // Render comments
+    function renderComments(comments) {
+      const container = document.getElementById('commentsContainer');
+
+      if (comments.length === 0) {
+        container.innerHTML = '<div style="color: #999; text-align: center; padding: 20px;">No comments yet. Be the first!</div>';
+        return;
+      }
+
+      container.innerHTML = comments.map(comment => `
+        <div class="comment ${comment.is_critique ? 'critique' : ''}">
+          <div class="profile-pic">
+            ${comment.profile_pic_key
+              ? `<img src="/bebo/images/${comment.profile_pic_key}" alt="${comment.user_name}">`
+              : comment.user_name[0].toUpperCase()
+            }
+          </div>
+          <div class="comment-content">
+            <div class="comment-author">
+              ${comment.user_name}
+              ${comment.is_critique ? '<span class="critique-badge">AI CRITIQUE</span>' : ''}
+            </div>
+            <div class="comment-text">${comment.comment}</div>
+            <div class="comment-time">${formatTime(comment.created_at)}</div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Submit comment
+    async function submitComment() {
+      const input = document.getElementById('commentInput');
+      const comment = input.value.trim();
+
+      if (!comment) return;
+
+      try {
+        await fetch(`/paint/api/artwork/${currentArtworkId}/comment`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ comment })
+        });
+
+        input.value = '';
+
+        // Reload artwork to get updated comments
+        const res = await fetch(`/paint/api/artwork/${currentArtworkId}`);
+        const artwork = await res.json();
+        renderComments(artwork.comments);
+      } catch (error) {
+        console.error('Error posting comment:', error);
+        alert('Failed to post comment');
+      }
+    }
+
+    // Get AI critique
+    async function getCritique() {
+      const btn = event.target;
+      btn.disabled = true;
+      btn.textContent = '✨ Generating critique...';
+
+      try {
+        await fetch(`/paint/api/artwork/${currentArtworkId}/critique`, {
+          method: 'POST'
+        });
+
+        // Reload artwork to get critique
+        const res = await fetch(`/paint/api/artwork/${currentArtworkId}`);
+        const artwork = await res.json();
+        renderComments(artwork.comments);
+
+        btn.textContent = '✨ Get AI Critique';
+        btn.disabled = false;
+      } catch (error) {
+        console.error('Error getting critique:', error);
+        alert('Failed to generate critique');
+        btn.textContent = '✨ Get AI Critique';
+        btn.disabled = false;
+      }
+    }
+
+    // Save artwork
+    async function saveArtwork() {
+      const imageData = canvas.toDataURL('image/png');
+
+      try {
+        const res = await fetch('/paint/api/artwork', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ image_data: imageData })
+        });
+
+        const result = await res.json();
+
+        if (result.success) {
+          clearCanvas();
+          showFeed();
+          loadFeed();
+        } else {
+          alert('Failed to save artwork');
+        }
+      } catch (error) {
+        console.error('Error saving artwork:', error);
+        alert('Failed to save artwork');
+      }
+    }
+
+    // View management
+    function showView(viewId) {
+      document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+      document.getElementById(viewId).classList.add('active');
+    }
+
+    function showFeed() {
+      showView('feedView');
+      loadFeed();
+    }
+
+    function showCanvas() {
+      showView('canvasView');
+      clearCanvas();
+    }
+
+    // Time formatting
+    function formatTime(timestamp) {
+      const date = new Date(timestamp * 1000);
+      const now = new Date();
+      const diff = now - date;
+      const minutes = Math.floor(diff / 60000);
+      const hours = Math.floor(minutes / 60);
+      const days = Math.floor(hours / 24);
+
+      if (minutes < 1) return 'Just now';
+      if (minutes < 60) return `${minutes}m ago`;
+      if (hours < 24) return `${hours}h ago`;
+      if (days < 7) return `${days}d ago`;
+      return date.toLocaleDateString();
+    }
+
+    // Initialize on load
+    init();
+  </script>
+</body>
+</html>

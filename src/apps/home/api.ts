@@ -7,6 +7,13 @@ const app = new Hono<AppContext>();
 app.get('/api/apps', (c) => {
   const apps = [
     {
+      id: 'paint',
+      name: 'Paint Studio',
+      description: 'Create artwork, share it, and get AI critiques',
+      path: '/paint',
+      icon: '🎨'
+    },
+    {
       id: 'hot-takes',
       name: 'Hot Takes',
       description: 'Share controversial opinions and argue in the comments',
