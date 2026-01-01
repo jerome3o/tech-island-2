@@ -30,6 +30,19 @@ This repo is designed for "fire and forget" agents - you may be one of many agen
 - **Framework**: Hono (lightweight, fast, Workers-native)
 - **CI/CD**: GitHub Actions - auto-deploys on push to main
 
+## Design Principles
+
+**MOBILE-FIRST**: All users access this app primarily on mobile devices. When building UIs:
+- Design for mobile viewports first (320px-428px width)
+- Test all layouts on mobile aspect ratios
+- Use responsive grids that collapse to single column on small screens
+- Ensure touch targets are at least 44x44px
+- Prioritize readability on small screens (adequate font sizes, contrast)
+- Avoid horizontal scrolling
+- Use mobile-friendly patterns (bottom sheets, full-width cards, etc.)
+
+Desktop layout is secondary - mobile experience is paramount.
+
 ## How to Add a New App
 
 ### 1. Create the app folder structure
