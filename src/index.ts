@@ -8,6 +8,7 @@ import { authMiddleware } from './lib/auth';
 import { claudeMiddleware } from './lib/claude';
 import { ensureUser } from './lib/db';
 import { saveSubscription, deleteSubscription } from './lib/push';
+import { isValidDisplayName } from './lib/displayNames';
 
 // Import apps
 import homeApp from './apps/home/api';
@@ -58,39 +59,28 @@ app.use('/*/api/*', async (c, next) => {
 // Get current user info
 app.get('/api/me', async (c) => {
   const user = c.get('user');
-
-  // Fetch alias from database
-  const dbUser = await c.env.DB.prepare(`
-    SELECT alias FROM users WHERE id = ?
-  `).bind(user.id).first();
-
-  return c.json({
-    ...user,
-    alias: dbUser?.alias || null
-  });
+  return c.json(user);
 });
 
-// Set user alias
-app.post('/api/me/alias', async (c) => {
+// Update user display name
+app.put('/api/me/displayname', async (c) => {
   const user = c.get('user');
-  const { alias } = await c.req.json();
+  const { displayName } = await c.req.json();
 
-  // Validate alias (3-20 chars, alphanumeric + spaces)
-  if (!alias || typeof alias !== 'string' || alias.length < 3 || alias.length > 20) {
-    return c.json({ error: 'Alias must be 3-20 characters' }, 400);
+  if (!isValidDisplayName(displayName)) {
+    return c.json({
+      error: 'Display name must be 3-30 characters and contain only letters, numbers, spaces, hyphens, and underscores'
+    }, 400);
   }
 
-  const trimmedAlias = alias.trim();
-  if (!/^[a-zA-Z0-9 ]+$/.test(trimmedAlias)) {
-    return c.json({ error: 'Alias can only contain letters, numbers, and spaces' }, 400);
-  }
+  const trimmed = displayName.trim();
 
-  // Update alias
-  await c.env.DB.prepare(`
-    UPDATE users SET alias = ? WHERE id = ?
-  `).bind(trimmedAlias, user.id).run();
+  // Update display name (alias column)
+  await c.env.DB.prepare(
+    'UPDATE users SET alias = ? WHERE id = ?'
+  ).bind(trimmed, user.id).run();
 
-  return c.json({ success: true, alias: trimmedAlias });
+  return c.json({ success: true, displayName: trimmed });
 });
 
 // Push notification subscription management

@@ -7,6 +7,7 @@ interface ChatMessage {
   id: number;
   user_id: string;
   user_email: string;
+  user_name: string; // Display name from users.alias
   content: string;
   created_at: string;
 }
@@ -18,16 +19,18 @@ app.get('/api/messages', async (c) => {
   const before = c.req.query('before'); // For pagination
 
   let query = `
-    SELECT id, user_id, user_email, content, created_at
-    FROM chat_messages
+    SELECT cm.id, cm.user_id, cm.user_email, cm.content, cm.created_at,
+           COALESCE(u.alias, cm.user_email) as user_name
+    FROM chat_messages cm
+    LEFT JOIN users u ON cm.user_id = u.id
   `;
 
   if (before) {
-    query += ` WHERE id < ? ORDER BY id DESC LIMIT ?`;
+    query += ` WHERE cm.id < ? ORDER BY cm.id DESC LIMIT ?`;
     const result = await db.prepare(query).bind(parseInt(before), limit).all<ChatMessage>();
     return c.json({ messages: result.results.reverse() });
   } else {
-    query += ` ORDER BY id DESC LIMIT ?`;
+    query += ` ORDER BY cm.id DESC LIMIT ?`;
     const result = await db.prepare(query).bind(limit).all<ChatMessage>();
     return c.json({ messages: result.results.reverse() });
   }
@@ -39,10 +42,12 @@ app.get('/api/messages/since/:id', async (c) => {
   const sinceId = parseInt(c.req.param('id'));
 
   const result = await db.prepare(`
-    SELECT id, user_id, user_email, content, created_at
-    FROM chat_messages
-    WHERE id > ?
-    ORDER BY id ASC
+    SELECT cm.id, cm.user_id, cm.user_email, cm.content, cm.created_at,
+           COALESCE(u.alias, cm.user_email) as user_name
+    FROM chat_messages cm
+    LEFT JOIN users u ON cm.user_id = u.id
+    WHERE cm.id > ?
+    ORDER BY cm.id ASC
     LIMIT 100
   `).bind(sinceId).all<ChatMessage>();
 
@@ -69,7 +74,17 @@ app.post('/api/messages', async (c) => {
     RETURNING id, user_id, user_email, content, created_at
   `).bind(user.id, user.email, content.trim()).first<ChatMessage>();
 
-  return c.json({ message: result });
+  // Get display name from users table
+  const userInfo = await db.prepare(`
+    SELECT COALESCE(alias, ?) as user_name FROM users WHERE id = ?
+  `).bind(user.email, user.id).first<{ user_name: string }>();
+
+  return c.json({
+    message: {
+      ...result,
+      user_name: userInfo?.user_name || user.email
+    }
+  });
 });
 
 export default app;

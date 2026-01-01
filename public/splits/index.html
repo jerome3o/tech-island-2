@@ -468,7 +468,10 @@
     // ============================================
 
     function $(id) { return document.getElementById(id); }
-    function getName(email) { return email.split('@')[0]; }
+    function getDisplayName(user) {
+      // Prefer nickname, then user_name (from alias), then fallback to email username
+      return user.nickname || user.user_name || user.name || user.email?.split('@')[0] || 'Unknown';
+    }
     function formatAmount(amount) { return '$' + Math.abs(amount).toFixed(2); }
 
     function showView(viewId) {
@@ -632,7 +635,7 @@
             <div class="list-icon">${exp.category_icon}</div>
             <div class="list-content">
               <div class="list-title">${exp.description}</div>
-              <div class="list-subtitle">${getName(exp.paid_by_email)} paid ${formatAmount(exp.amount)}</div>
+              <div class="list-subtitle">${exp.paid_by_name} paid ${formatAmount(exp.amount)}</div>
             </div>
             <div class="list-amount ${paidByMe ? 'positive' : ''}">
               ${formatAmount(exp.amount)}
@@ -651,7 +654,7 @@
       // Populate paid_by dropdown
       $('expense-paid-by').innerHTML = members.map(m => `
         <option value="${m.user_id}" ${m.user_id === currentUser.id ? 'selected' : ''}>
-          ${m.nickname || getName(m.user_email)}${m.user_id === currentUser.id ? ' (you)' : ''}
+          ${getDisplayName(m)}${m.user_id === currentUser.id ? ' (you)' : ''}
         </option>
       `).join('');
 
@@ -677,7 +680,7 @@
           <div class="member-chips">
             ${members.map(m => `
               <div class="member-chip">
-                <span>${m.nickname || getName(m.user_email)}</span>
+                <span>${getDisplayName(m)}</span>
                 <input type="number" step="0.01" min="0" data-user="${m.user_id}" placeholder="0.00">
               </div>
             `).join('')}
@@ -772,20 +775,20 @@
       $('debts-list').innerHTML = data.debts.map(d => `
         <div class="debt-card">
           <div class="debt-users">
-            <strong>${getName(d.from_email)}</strong>
+            <strong>${d.from_name}</strong>
             <span style="color:#666;"> owes </span>
-            <strong>${getName(d.to_email)}</strong>
+            <strong>${d.to_name}</strong>
           </div>
           <div class="debt-amount">${formatAmount(d.amount)}</div>
-          <button class="btn btn-sm" onclick="openSettle('${d.from_user}', '${d.to_user}', '${d.from_email}', '${d.to_email}', ${d.amount})">
+          <button class="btn btn-sm" onclick="openSettle('${d.from_user}', '${d.to_user}', '${d.from_name}', '${d.to_name}', ${d.amount})">
             Settle
           </button>
         </div>
       `).join('');
     }
 
-    function openSettle(fromUser, toUser, fromEmail, toEmail, amount) {
-      $('settle-description').textContent = `${getName(fromEmail)} pays ${getName(toEmail)}`;
+    function openSettle(fromUser, toUser, fromName, toName, amount) {
+      $('settle-description').textContent = `${fromName} pays ${toName}`;
       $('settle-amount').value = amount.toFixed(2);
       $('settle-from').value = fromUser;
       $('settle-to').value = toUser;
@@ -822,7 +825,7 @@
         <div class="list-item">
           <div class="list-icon">👤</div>
           <div class="list-content">
-            <div class="list-title">${m.nickname || getName(m.user_email)}</div>
+            <div class="list-title">${getDisplayName(m)}</div>
             <div class="list-subtitle">${m.user_email}</div>
           </div>
           ${m.user_id === currentUser.id ? '<span style="color:#10B981;">You</span>' : ''}
@@ -874,7 +877,7 @@
         <option value="">-- Select a user --</option>
         ${availableUsers.map(u => `
           <option value="${u.id}" data-email="${u.email}">
-            ${getName(u.email)} (${u.email})
+            ${u.name} (${u.email})
           </option>
         `).join('')}
       `;
