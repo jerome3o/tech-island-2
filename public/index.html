@@ -67,6 +67,40 @@
       align-items: center;
       justify-content: center;
       font-size: 1.5rem;
+      cursor: pointer;
+      transition: transform 0.2s;
+      object-fit: cover;
+    }
+
+    .user-avatar:hover {
+      transform: scale(1.05);
+    }
+
+    .user-avatar img {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+
+    .user-details {
+      flex: 1;
+    }
+
+    .profile-link {
+      background: rgba(255, 255, 255, 0.3);
+      color: white;
+      text-decoration: none;
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      transition: background 0.2s;
+      white-space: nowrap;
+    }
+
+    .profile-link:hover {
+      background: rgba(255, 255, 255, 0.4);
     }
 
     .apps-grid {
@@ -167,11 +201,12 @@
     </header>
 
     <div id="user-info" class="user-info" style="display: none;">
-      <div class="user-avatar" id="user-avatar">👤</div>
-      <div>
+      <div class="user-avatar" id="user-avatar" onclick="window.location.href='/bebo'">👤</div>
+      <div class="user-details">
         <strong id="user-name">Loading...</strong>
         <div id="user-email" style="opacity: 0.8; font-size: 0.9rem;"></div>
       </div>
+      <a href="/bebo" class="profile-link">My Profile</a>
     </div>
 
     <div id="apps-container" class="loading">
@@ -207,9 +242,28 @@
         if (response.ok) {
           const user = await response.json();
           document.getElementById('user-info').style.display = 'flex';
-          document.getElementById('user-name').textContent = user.name || user.email.split('@')[0];
+          document.getElementById('user-name').textContent = user.alias || user.name || user.email.split('@')[0];
           document.getElementById('user-email').textContent = user.email;
-          document.getElementById('user-avatar').textContent = (user.name || user.email)[0].toUpperCase();
+
+          // Load Bebo profile picture if available
+          try {
+            const beboResponse = await fetch(`/bebo/api/profile/${user.id}`);
+            if (beboResponse.ok) {
+              const beboProfile = await beboResponse.json();
+              const avatarEl = document.getElementById('user-avatar');
+
+              if (beboProfile.profile_pic_key) {
+                avatarEl.innerHTML = `<img src="/bebo/images/${beboProfile.profile_pic_key}" alt="Profile">`;
+              } else {
+                avatarEl.textContent = (user.alias || user.name || user.email)[0].toUpperCase();
+              }
+            } else {
+              document.getElementById('user-avatar').textContent = (user.alias || user.name || user.email)[0].toUpperCase();
+            }
+          } catch (beboError) {
+            console.error('Failed to load Bebo profile:', beboError);
+            document.getElementById('user-avatar').textContent = (user.alias || user.name || user.email)[0].toUpperCase();
+          }
         }
       } catch (error) {
         console.error('Failed to load user:', error);
