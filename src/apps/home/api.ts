@@ -7,6 +7,13 @@ const app = new Hono<AppContext>();
 app.get('/api/apps', (c) => {
   const apps = [
     {
+      id: 'boggle',
+      name: 'Boggle',
+      description: 'Multiplayer word game with real-time competition',
+      path: '/boggle',
+      icon: '🎲'
+    },
+    {
       id: 'splits',
       name: 'Splits',
       description: 'Split expenses with friends',
