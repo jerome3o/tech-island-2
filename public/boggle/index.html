@@ -811,31 +811,38 @@
       }
     }
 
-    // Submit word
+    // Submit word (non-blocking for better UX)
     async function submitWord() {
       if (!currentWord || currentWord.length < 3) return;
 
-      try {
-        const response = await fetch(`/boggle/api/games/${currentGameId}/submit`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ word: currentWord })
-        });
+      // Save the word and clear immediately (optimistic UI)
+      const submittedWord = currentWord;
+      clearWord();
 
-        const data = await response.json();
+      // Submit in background (don't await)
+      fetch(`/boggle/api/games/${currentGameId}/submit`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ word: submittedWord })
+      })
+      .then(response => response.json().then(data => ({ response, data })))
+      .then(({ response, data }) => {
         const messageDiv = document.getElementById('wordMessage');
 
         if (response.ok) {
           messageDiv.innerHTML = `<div class="message success">✓ ${data.word} (+${data.points} pts)</div>`;
-          clearWord(); // Clear the word after successful submission
           setTimeout(() => messageDiv.innerHTML = '', 2000);
         } else {
           messageDiv.innerHTML = `<div class="message error">✗ ${data.error}</div>`;
           setTimeout(() => messageDiv.innerHTML = '', 3000);
         }
-      } catch (error) {
+      })
+      .catch(error => {
         console.error('Failed to submit word:', error);
-      }
+        const messageDiv = document.getElementById('wordMessage');
+        messageDiv.innerHTML = `<div class="message error">✗ Network error</div>`;
+        setTimeout(() => messageDiv.innerHTML = '', 3000);
+      });
     }
 
     // Poll game state
