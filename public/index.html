@@ -188,6 +188,7 @@
       <strong>🔔 Enable Notifications</strong>
       <p>Get notified when important things happen.</p>
       <button id="notification-button">Enable</button>
+      <button id="test-notification-button" style="margin-left: 0.5rem; background: #10B981;">Test</button>
     </div>
   </div>
 
@@ -273,6 +274,17 @@
           await subscribeToPush();
         }
         document.getElementById('notification-prompt').classList.remove('show');
+      });
+
+      document.getElementById('test-notification-button')?.addEventListener('click', async () => {
+        if (Notification.permission === 'granted') {
+          new Notification('Towerhouse Test', {
+            body: 'Notifications are working!',
+            icon: '/icons/icon-192.png'
+          });
+        } else {
+          alert('Please enable notifications first');
+        }
       });
     }
 

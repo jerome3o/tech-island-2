@@ -23,12 +23,22 @@ app.use('*', cors({
   credentials: true
 }));
 
-// Auth middleware for API routes
+// Auth middleware for all API routes (including app-specific ones like /hello/api/*)
 app.use('/api/*', authMiddleware);
 app.use('/api/*', claudeMiddleware);
+app.use('/*/api/*', authMiddleware);
+app.use('/*/api/*', claudeMiddleware);
 
 // Ensure user exists in DB on first request
 app.use('/api/*', async (c, next) => {
+  const user = c.get('user');
+  if (user) {
+    await ensureUser(c.env.DB, user.id, user.email);
+  }
+  return next();
+});
+
+app.use('/*/api/*', async (c, next) => {
   const user = c.get('user');
   if (user) {
     await ensureUser(c.env.DB, user.id, user.email);
@@ -63,6 +73,16 @@ app.delete('/api/push/subscribe', async (c) => {
 // Get VAPID public key for push subscription
 app.get('/api/push/vapid-key', (c) => {
   return c.json({ publicKey: c.env.VAPID_PUBLIC_KEY });
+});
+
+// Test push notification
+app.post('/api/push/test', async (c) => {
+  const user = c.get('user');
+  return c.json({
+    success: true,
+    message: `Test notification would be sent to ${user.email}`,
+    note: 'Full push implementation requires web-push library'
+  });
 });
 
 // ============================================
