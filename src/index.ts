@@ -54,9 +54,41 @@ app.use('/*/api/*', async (c, next) => {
 // ============================================
 
 // Get current user info
-app.get('/api/me', (c) => {
+app.get('/api/me', async (c) => {
   const user = c.get('user');
-  return c.json(user);
+
+  // Fetch alias from database
+  const dbUser = await c.env.DB.prepare(`
+    SELECT alias FROM users WHERE id = ?
+  `).bind(user.id).first();
+
+  return c.json({
+    ...user,
+    alias: dbUser?.alias || null
+  });
+});
+
+// Set user alias
+app.post('/api/me/alias', async (c) => {
+  const user = c.get('user');
+  const { alias } = await c.req.json();
+
+  // Validate alias (3-20 chars, alphanumeric + spaces)
+  if (!alias || typeof alias !== 'string' || alias.length < 3 || alias.length > 20) {
+    return c.json({ error: 'Alias must be 3-20 characters' }, 400);
+  }
+
+  const trimmedAlias = alias.trim();
+  if (!/^[a-zA-Z0-9 ]+$/.test(trimmedAlias)) {
+    return c.json({ error: 'Alias can only contain letters, numbers, and spaces' }, 400);
+  }
+
+  // Update alias
+  await c.env.DB.prepare(`
+    UPDATE users SET alias = ? WHERE id = ?
+  `).bind(trimmedAlias, user.id).run();
+
+  return c.json({ success: true, alias: trimmedAlias });
 });
 
 // Push notification subscription management

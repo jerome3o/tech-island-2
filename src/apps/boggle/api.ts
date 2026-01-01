@@ -264,12 +264,17 @@ app.get('/api/games/:id/state', async (c) => {
     return c.json({ error: 'Game not found' }, 404);
   }
 
-  // Get players with scores
+  // Get players with scores and aliases
   const players = await db.prepare(`
-    SELECT user_id, score
-    FROM boggle_players
-    WHERE game_id = ?
-    ORDER BY score DESC, joined_at ASC
+    SELECT
+      p.user_id,
+      p.score,
+      u.alias,
+      u.email
+    FROM boggle_players p
+    LEFT JOIN users u ON p.user_id = u.id
+    WHERE p.game_id = ?
+    ORDER BY p.score DESC, p.joined_at ASC
   `).bind(gameId).all();
 
   // If game is finished or time's up, get all words
