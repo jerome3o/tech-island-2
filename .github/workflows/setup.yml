@@ -28,12 +28,12 @@ jobs:
           command: d1 create towerhouse-db
         continue-on-error: true  # Ignore if already exists
 
-      - name: Get Database Info
+      - name: List D1 Databases
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: d1 info towerhouse-db
+          command: d1 list
 
       - name: Next Steps
         run: |
