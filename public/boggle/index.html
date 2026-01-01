@@ -148,6 +148,33 @@
       border-radius: 12px;
       box-shadow: 0 4px 6px rgba(0,0,0,0.2);
       animation: popIn 0.3s ease-out;
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.2s;
+    }
+
+    .tile:hover {
+      transform: scale(1.05);
+      box-shadow: 0 6px 12px rgba(0,0,0,0.3);
+    }
+
+    .tile:active {
+      transform: scale(0.95);
+    }
+
+    .tile.selected {
+      background: linear-gradient(135deg, #f59e0b, #f97316);
+      box-shadow: 0 6px 12px rgba(245, 158, 11, 0.5);
+      transform: scale(1.1);
+    }
+
+    .tile.disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .tile.disabled:hover {
+      transform: none;
     }
 
     @keyframes popIn {
@@ -188,14 +215,45 @@
       margin: 20px auto;
     }
 
-    .word-input {
+    .word-display {
+      background: white;
+      border: 3px solid #667eea;
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+      font-size: 32px;
+      font-weight: bold;
+      color: #667eea;
+      min-height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      letter-spacing: 3px;
+      margin-bottom: 15px;
+      font-family: monospace;
+    }
+
+    .word-display.empty {
+      color: #ccc;
+      font-size: 18px;
+      letter-spacing: normal;
+    }
+
+    .word-controls {
       display: flex;
       gap: 10px;
     }
 
-    .word-input input {
+    .word-controls button {
       flex: 1;
-      text-transform: uppercase;
+    }
+
+    .word-controls button.secondary {
+      background: #64748b;
+    }
+
+    .word-controls button.secondary:hover {
+      background: #475569;
     }
 
     .message {
@@ -391,9 +449,11 @@
         <div class="board" id="board"></div>
 
         <div class="word-input-container">
-          <div class="word-input">
-            <input type="text" id="wordInput" placeholder="Type a word..." autocomplete="off">
-            <button onclick="submitWord()">Submit</button>
+          <div class="word-display empty" id="wordDisplay">Click tiles to build a word</div>
+          <div class="word-controls">
+            <button class="secondary" onclick="backspace()">⌫ Backspace</button>
+            <button class="secondary" onclick="clearWord()">✕ Clear</button>
+            <button onclick="submitWord()">✓ Submit</button>
           </div>
           <div id="wordMessage"></div>
         </div>
@@ -428,10 +488,112 @@
     let currentGameId = null;
     let pollInterval = null;
     let currentUserId = null;
+    let currentBoard = [];
+    let selectedPath = []; // Array of tile indices
+    let currentWord = '';
 
     // Initialize
     async function init() {
       await loadGames();
+    }
+
+    // Get adjacent tile positions (for 4x4 board)
+    function getAdjacentTiles(pos) {
+      const row = Math.floor(pos / 4);
+      const col = pos % 4;
+      const adjacent = [];
+
+      for (let r = Math.max(0, row - 1); r <= Math.min(3, row + 1); r++) {
+        for (let c = Math.max(0, col - 1); c <= Math.min(3, col + 1); c++) {
+          const adjPos = r * 4 + c;
+          if (adjPos !== pos) {
+            adjacent.push(adjPos);
+          }
+        }
+      }
+
+      return adjacent;
+    }
+
+    // Handle tile click
+    function onTileClick(index) {
+      // Can't click if already in path
+      if (selectedPath.includes(index)) return;
+
+      // If path is not empty, must be adjacent to last tile
+      if (selectedPath.length > 0) {
+        const lastTile = selectedPath[selectedPath.length - 1];
+        const adjacentTiles = getAdjacentTiles(lastTile);
+        if (!adjacentTiles.includes(index)) return;
+      }
+
+      // Add to path
+      selectedPath.push(index);
+      const letter = currentBoard[index];
+      currentWord += letter;
+
+      // Update UI
+      updateWordDisplay();
+      updateTileStates();
+    }
+
+    // Backspace - remove last letter
+    function backspace() {
+      if (selectedPath.length === 0) return;
+
+      selectedPath.pop();
+
+      // Rebuild word from path
+      currentWord = '';
+      for (const idx of selectedPath) {
+        currentWord += currentBoard[idx];
+      }
+
+      updateWordDisplay();
+      updateTileStates();
+    }
+
+    // Clear word
+    function clearWord() {
+      selectedPath = [];
+      currentWord = '';
+      updateWordDisplay();
+      updateTileStates();
+    }
+
+    // Update word display
+    function updateWordDisplay() {
+      const display = document.getElementById('wordDisplay');
+      if (currentWord.length === 0) {
+        display.textContent = 'Click tiles to build a word';
+        display.classList.add('empty');
+      } else {
+        display.textContent = currentWord;
+        display.classList.remove('empty');
+      }
+    }
+
+    // Update tile states (highlight selected, disable invalid)
+    function updateTileStates() {
+      const tiles = document.querySelectorAll('.tile');
+
+      tiles.forEach((tile, index) => {
+        // Remove all state classes
+        tile.classList.remove('selected', 'disabled');
+
+        // Highlight selected tiles
+        if (selectedPath.includes(index)) {
+          tile.classList.add('selected');
+        }
+        // Disable tiles that can't be selected next
+        else if (selectedPath.length > 0) {
+          const lastTile = selectedPath[selectedPath.length - 1];
+          const adjacentTiles = getAdjacentTiles(lastTile);
+          if (!adjacentTiles.includes(index)) {
+            tile.classList.add('disabled');
+          }
+        }
+      });
     }
 
     // Show/hide views
@@ -561,16 +723,13 @@
 
     // Submit word
     async function submitWord() {
-      const wordInput = document.getElementById('wordInput');
-      const word = wordInput.value.trim();
-
-      if (!word) return;
+      if (!currentWord || currentWord.length < 3) return;
 
       try {
         const response = await fetch(`/boggle/api/games/${currentGameId}/submit`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ word })
+          body: JSON.stringify({ word: currentWord })
         });
 
         const data = await response.json();
@@ -578,7 +737,7 @@
 
         if (response.ok) {
           messageDiv.innerHTML = `<div class="message success">✓ ${data.word} (+${data.points} pts)</div>`;
-          wordInput.value = '';
+          clearWord(); // Clear the word after successful submission
           setTimeout(() => messageDiv.innerHTML = '', 2000);
         } else {
           messageDiv.innerHTML = `<div class="message error">✗ ${data.error}</div>`;
@@ -636,12 +795,6 @@
       if (document.getElementById('activeGameView').classList.contains('active') === false) {
         showView('activeGameView');
         renderBoard(data.game.board);
-
-        // Enable word input
-        const input = document.getElementById('wordInput');
-        input.addEventListener('keypress', (e) => {
-          if (e.key === 'Enter') submitWord();
-        });
       }
 
       // Update timer
@@ -667,10 +820,16 @@
 
     // Render board
     function renderBoard(board) {
+      currentBoard = board;
+      selectedPath = [];
+      currentWord = '';
+
       const boardDiv = document.getElementById('board');
-      boardDiv.innerHTML = board.map(letter =>
-        `<div class="tile">${letter}</div>`
+      boardDiv.innerHTML = board.map((letter, index) =>
+        `<div class="tile" onclick="onTileClick(${index})" data-index="${index}">${letter}</div>`
       ).join('');
+
+      updateWordDisplay();
     }
 
     // Update results view
