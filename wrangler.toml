@@ -5,6 +5,11 @@ compatibility_date = "2024-12-01"
 # Static assets served from /public
 assets = { directory = "public" }
 
+# Custom domain
+routes = [
+  { pattern = "app.towerhouse.london", custom_domain = true }
+]
+
 [[d1_databases]]
 binding = "DB"
 database_name = "towerhouse-db"
@@ -18,7 +23,3 @@ migrations_dir = "migrations"
 
 [vars]
 APP_URL = "https://app.towerhouse.london"
-
-routes = [
-  { pattern = "app.towerhouse.london", custom_domain = true }
-]
