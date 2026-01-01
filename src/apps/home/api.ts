@@ -49,6 +49,13 @@ app.get('/api/apps', (c) => {
       icon: '🎲'
     },
     {
+      id: 'herdle',
+      name: 'Herdle',
+      description: 'Daily 6-letter word puzzle - like Wordle but harder!',
+      path: '/herdle',
+      icon: '🔤'
+    },
+    {
       id: 'splits',
       name: 'Splits',
       description: 'Split expenses with friends',

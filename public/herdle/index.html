@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Herdle - 6 Letter Word Game</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: #121213;
+      color: #fff;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      touch-action: manipulation;
+    }
+
+    .header {
+      border-bottom: 1px solid #3a3a3c;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .header h1 {
+      font-size: 24px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+
+    .header-buttons {
+      display: flex;
+      gap: 8px;
+    }
+
+    .icon-button {
+      background: none;
+      border: none;
+      color: #fff;
+      font-size: 24px;
+      cursor: pointer;
+      padding: 4px;
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 4px;
+    }
+
+    .icon-button:hover {
+      background: #3a3a3c;
+    }
+
+    .back-link {
+      color: #818384;
+      text-decoration: none;
+      font-size: 14px;
+      padding: 8px;
+    }
+
+    .back-link:hover {
+      color: #fff;
+    }
+
+    .container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 16px;
+      max-width: 500px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    .game-board {
+      display: grid;
+      grid-template-rows: repeat(6, 1fr);
+      gap: 5px;
+      margin: 20px 0;
+      width: 100%;
+      max-width: 350px;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 5px;
+    }
+
+    .tile {
+      aspect-ratio: 1;
+      border: 2px solid #3a3a3c;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      font-weight: 700;
+      text-transform: uppercase;
+      transition: all 0.2s ease;
+    }
+
+    .tile.filled {
+      border-color: #565758;
+      animation: pop 0.1s ease;
+    }
+
+    .tile.correct {
+      background: #538d4e;
+      border-color: #538d4e;
+      animation: flip 0.5s ease;
+    }
+
+    .tile.present {
+      background: #b59f3b;
+      border-color: #b59f3b;
+      animation: flip 0.5s ease;
+    }
+
+    .tile.absent {
+      background: #3a3a3c;
+      border-color: #3a3a3c;
+      animation: flip 0.5s ease;
+    }
+
+    @keyframes pop {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+      100% { transform: scale(1); }
+    }
+
+    @keyframes flip {
+      0% { transform: rotateX(0); }
+      50% { transform: rotateX(-90deg); }
+      100% { transform: rotateX(0); }
+    }
+
+    .keyboard {
+      width: 100%;
+      max-width: 500px;
+      margin-top: auto;
+      padding-bottom: 16px;
+    }
+
+    .keyboard-row {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 8px;
+      justify-content: center;
+    }
+
+    .key {
+      min-width: 32px;
+      height: 58px;
+      border-radius: 4px;
+      border: none;
+      background: #818384;
+      color: #fff;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      flex: 1;
+      max-width: 43px;
+      text-transform: uppercase;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .key.wide {
+      max-width: 65px;
+      font-size: 12px;
+    }
+
+    .key:active {
+      opacity: 0.7;
+    }
+
+    .key.correct {
+      background: #538d4e;
+    }
+
+    .key.present {
+      background: #b59f3b;
+    }
+
+    .key.absent {
+      background: #3a3a3c;
+    }
+
+    .message {
+      position: fixed;
+      top: 80px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #fff;
+      color: #000;
+      padding: 12px 24px;
+      border-radius: 4px;
+      font-weight: 600;
+      animation: slideDown 0.3s ease;
+      z-index: 100;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+
+    @keyframes slideDown {
+      from { transform: translate(-50%, -100%); }
+      to { transform: translate(-50%, 0); }
+    }
+
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.8);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    .modal.active {
+      display: flex;
+    }
+
+    .modal-content {
+      background: #121213;
+      border: 1px solid #3a3a3c;
+      border-radius: 8px;
+      padding: 24px;
+      max-width: 400px;
+      width: 100%;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .modal-header h2 {
+      font-size: 20px;
+    }
+
+    .close-button {
+      background: none;
+      border: none;
+      color: #818384;
+      font-size: 24px;
+      cursor: pointer;
+      padding: 0;
+      width: 24px;
+      height: 24px;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .stat {
+      text-align: center;
+    }
+
+    .stat-value {
+      font-size: 28px;
+      font-weight: 700;
+    }
+
+    .stat-label {
+      font-size: 12px;
+      color: #818384;
+      margin-top: 4px;
+    }
+
+    .distribution {
+      margin-top: 24px;
+    }
+
+    .distribution h3 {
+      font-size: 16px;
+      margin-bottom: 12px;
+    }
+
+    .dist-row {
+      display: flex;
+      align-items: center;
+      margin-bottom: 4px;
+    }
+
+    .dist-label {
+      width: 20px;
+      font-size: 14px;
+    }
+
+    .dist-bar {
+      background: #3a3a3c;
+      height: 24px;
+      margin-left: 8px;
+      flex: 1;
+      display: flex;
+      align-items: center;
+      padding: 0 8px;
+      font-size: 14px;
+      font-weight: 600;
+      min-width: 30px;
+      border-radius: 2px;
+    }
+
+    .dist-bar.highlight {
+      background: #538d4e;
+    }
+
+    .share-button {
+      width: 100%;
+      padding: 14px;
+      background: #538d4e;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 20px;
+    }
+
+    .share-button:active {
+      opacity: 0.8;
+    }
+
+    @media (max-width: 375px) {
+      .tile {
+        font-size: 20px;
+      }
+
+      .key {
+        height: 52px;
+        font-size: 12px;
+      }
+
+      .game-board {
+        max-width: 320px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <a href="/" class="back-link">← Home</a>
+    <h1>HERDLE</h1>
+    <div class="header-buttons">
+      <button class="icon-button" id="statsButton">📊</button>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="game-board" id="board">
+      <div class="row" data-row="0">
+        <div class="tile"></div><div class="tile"></div><div class="tile"></div>
+        <div class="tile"></div><div class="tile"></div><div class="tile"></div>
+      </div>
+      <div class="row" data-row="1">
+        <div class="tile"></div><div class="tile"></div><div class="tile"></div>
+        <div class="tile"></div><div class="tile"></div><div class="tile"></div>
+      </div>
+      <div class="row" data-row="2">
+        <div class="tile"></div><div class="tile"></div><div class="tile"></div>
+        <div class="tile"></div><div class="tile"></div><div class="tile"></div>
+      </div>
+      <div class="row" data-row="3">
+        <div class="tile"></div><div class="tile"></div><div class="tile"></div>
+        <div class="tile"></div><div class="tile"></div><div class="tile"></div>
+      </div>
+      <div class="row" data-row="4">
+        <div class="tile"></div><div class="tile"></div><div class="tile"></div>
+        <div class="tile"></div><div class="tile"></div><div class="tile"></div>
+      </div>
+      <div class="row" data-row="5">
+        <div class="tile"></div><div class="tile"></div><div class="tile"></div>
+        <div class="tile"></div><div class="tile"></div><div class="tile"></div>
+      </div>
+    </div>
+
+    <div class="keyboard">
+      <div class="keyboard-row">
+        <button class="key" data-key="Q">Q</button>
+        <button class="key" data-key="W">W</button>
+        <button class="key" data-key="E">E</button>
+        <button class="key" data-key="R">R</button>
+        <button class="key" data-key="T">T</button>
+        <button class="key" data-key="Y">Y</button>
+        <button class="key" data-key="U">U</button>
+        <button class="key" data-key="I">I</button>
+        <button class="key" data-key="O">O</button>
+        <button class="key" data-key="P">P</button>
+      </div>
+      <div class="keyboard-row">
+        <button class="key" data-key="A">A</button>
+        <button class="key" data-key="S">S</button>
+        <button class="key" data-key="D">D</button>
+        <button class="key" data-key="F">F</button>
+        <button class="key" data-key="G">G</button>
+        <button class="key" data-key="H">H</button>
+        <button class="key" data-key="J">J</button>
+        <button class="key" data-key="K">K</button>
+        <button class="key" data-key="L">L</button>
+      </div>
+      <div class="keyboard-row">
+        <button class="key wide" data-key="Enter">ENTER</button>
+        <button class="key" data-key="Z">Z</button>
+        <button class="key" data-key="X">X</button>
+        <button class="key" data-key="C">C</button>
+        <button class="key" data-key="V">V</button>
+        <button class="key" data-key="B">B</button>
+        <button class="key" data-key="N">N</button>
+        <button class="key" data-key="M">M</button>
+        <button class="key wide" data-key="Backspace">⌫</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stats Modal -->
+  <div class="modal" id="statsModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Statistics</h2>
+        <button class="close-button" id="closeStats">✕</button>
+      </div>
+      <div class="stats-grid">
+        <div class="stat">
+          <div class="stat-value" id="gamesPlayed">0</div>
+          <div class="stat-label">Played</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value" id="winPercentage">0</div>
+          <div class="stat-label">Win %</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value" id="currentStreak">0</div>
+          <div class="stat-label">Current Streak</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value" id="maxStreak">0</div>
+          <div class="stat-label">Max Streak</div>
+        </div>
+      </div>
+      <div class="distribution">
+        <h3>Guess Distribution</h3>
+        <div id="distributionBars"></div>
+      </div>
+      <button class="share-button" id="shareButton" style="display: none;">Share Result</button>
+    </div>
+  </div>
+
+  <script>
+    let currentGuess = '';
+    let currentRow = 0;
+    let gameCompleted = false;
+    let keyboardState = {}; // Track key colors
+
+    // Load game state
+    async function loadGame() {
+      const res = await fetch('/herdle/api/game');
+      const data = await res.json();
+
+      // Restore guesses
+      data.guesses.forEach((guess, i) => {
+        currentRow = i;
+        renderGuess(guess.word, guess.evaluation);
+        updateKeyboard(guess.evaluation);
+      });
+
+      currentRow = data.guesses.length;
+      gameCompleted = data.completed > 0;
+
+      if (gameCompleted) {
+        setTimeout(() => showStats(), 1500);
+      }
+    }
+
+    // Render a guess on the board
+    function renderGuess(word, evaluation) {
+      const row = document.querySelector(`[data-row="${currentRow}"]`);
+      const tiles = row.querySelectorAll('.tile');
+
+      tiles.forEach((tile, i) => {
+        tile.textContent = word[i];
+        tile.classList.add('filled');
+
+        if (evaluation) {
+          setTimeout(() => {
+            tile.classList.add(evaluation[i].status);
+          }, i * 100);
+        }
+      });
+    }
+
+    // Update keyboard colors
+    function updateKeyboard(evaluation) {
+      evaluation.forEach(({ letter, status }) => {
+        const currentStatus = keyboardState[letter];
+
+        // Priority: correct > present > absent
+        if (!currentStatus ||
+            (status === 'correct') ||
+            (status === 'present' && currentStatus !== 'correct')) {
+          keyboardState[letter] = status;
+
+          const key = document.querySelector(`[data-key="${letter}"]`);
+          if (key) {
+            key.classList.remove('correct', 'present', 'absent');
+            key.classList.add(status);
+          }
+        }
+      });
+    }
+
+    // Show current guess
+    function showCurrentGuess() {
+      if (gameCompleted) return;
+
+      const row = document.querySelector(`[data-row="${currentRow}"]`);
+      const tiles = row.querySelectorAll('.tile');
+
+      tiles.forEach((tile, i) => {
+        if (i < currentGuess.length) {
+          tile.textContent = currentGuess[i];
+          tile.classList.add('filled');
+        } else {
+          tile.textContent = '';
+          tile.classList.remove('filled');
+        }
+      });
+    }
+
+    // Show message
+    function showMessage(text) {
+      const existing = document.querySelector('.message');
+      if (existing) existing.remove();
+
+      const message = document.createElement('div');
+      message.className = 'message';
+      message.textContent = text;
+      document.body.appendChild(message);
+
+      setTimeout(() => message.remove(), 2000);
+    }
+
+    // Submit guess
+    async function submitGuess() {
+      if (currentGuess.length !== 6) {
+        showMessage('Not enough letters');
+        return;
+      }
+
+      try {
+        const res = await fetch('/herdle/api/guess', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ guess: currentGuess })
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          showMessage(data.error || 'Invalid guess');
+          return;
+        }
+
+        renderGuess(currentGuess, data.evaluation);
+        updateKeyboard(data.evaluation);
+
+        currentGuess = '';
+        currentRow++;
+
+        if (data.completed) {
+          gameCompleted = true;
+          if (data.won) {
+            showMessage('Brilliant! 🎉');
+          } else {
+            showMessage(`The word was ${data.targetWord}`);
+          }
+          setTimeout(() => showStats(), 1500);
+        }
+      } catch (err) {
+        showMessage('Error submitting guess');
+        console.error(err);
+      }
+    }
+
+    // Handle key press
+    function handleKey(key) {
+      if (gameCompleted) return;
+
+      if (key === 'Enter') {
+        submitGuess();
+      } else if (key === 'Backspace') {
+        currentGuess = currentGuess.slice(0, -1);
+        showCurrentGuess();
+      } else if (/^[A-Z]$/.test(key) && currentGuess.length < 6) {
+        currentGuess += key;
+        showCurrentGuess();
+      }
+    }
+
+    // Keyboard events
+    document.querySelectorAll('.key').forEach(key => {
+      key.addEventListener('click', () => {
+        handleKey(key.dataset.key);
+      });
+    });
+
+    document.addEventListener('keydown', (e) => {
+      const key = e.key.toUpperCase();
+      if (key === 'ENTER' || key === 'BACKSPACE' || /^[A-Z]$/.test(key)) {
+        e.preventDefault();
+        handleKey(key);
+      }
+    });
+
+    // Stats modal
+    async function showStats() {
+      const res = await fetch('/herdle/api/stats');
+      const stats = await res.json();
+
+      document.getElementById('gamesPlayed').textContent = stats.gamesPlayed;
+      document.getElementById('winPercentage').textContent = stats.winPercentage;
+      document.getElementById('currentStreak').textContent = stats.currentStreak;
+      document.getElementById('maxStreak').textContent = stats.maxStreak;
+
+      // Render distribution
+      const dist = stats.guessDistribution;
+      const maxCount = Math.max(...Object.values(dist), 1);
+      const barsHtml = Object.entries(dist).map(([num, count]) => {
+        const width = (count / maxCount) * 100;
+        const isHighlight = gameCompleted && currentRow === parseInt(num);
+        return `
+          <div class="dist-row">
+            <div class="dist-label">${num}</div>
+            <div class="dist-bar ${isHighlight ? 'highlight' : ''}" style="width: ${Math.max(width, 10)}%">
+              ${count}
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      document.getElementById('distributionBars').innerHTML = barsHtml;
+
+      // Show share button if completed today
+      if (gameCompleted) {
+        document.getElementById('shareButton').style.display = 'block';
+      }
+
+      document.getElementById('statsModal').classList.add('active');
+    }
+
+    document.getElementById('statsButton').addEventListener('click', showStats);
+    document.getElementById('closeStats').addEventListener('click', () => {
+      document.getElementById('statsModal').classList.remove('active');
+    });
+
+    // Share result
+    document.getElementById('shareButton').addEventListener('click', async () => {
+      const res = await fetch('/herdle/api/share');
+      const data = await res.json();
+
+      if (navigator.share) {
+        try {
+          await navigator.share({ text: data.shareText });
+        } catch (err) {
+          // User cancelled or share failed
+          copyToClipboard(data.shareText);
+        }
+      } else {
+        copyToClipboard(data.shareText);
+      }
+    });
+
+    function copyToClipboard(text) {
+      navigator.clipboard.writeText(text).then(() => {
+        showMessage('Copied to clipboard!');
+      }).catch(() => {
+        showMessage('Failed to copy');
+      });
+    }
+
+    // Initialize
+    loadGame();
+  </script>
+</body>
+</html>
