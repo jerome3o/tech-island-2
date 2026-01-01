@@ -245,6 +245,12 @@
       font-size: 0.85rem;
     }
 
+    .debug-log-buttons {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .debug-log-copy,
     .debug-log-clear {
       background: #DC2626;
       color: white;
@@ -253,6 +259,14 @@
       border-radius: 4px;
       font-size: 0.75rem;
       cursor: pointer;
+    }
+
+    .debug-log-copy {
+      background: #059669;
+    }
+
+    .debug-log-copy:hover {
+      background: #047857;
     }
 
     .debug-log-clear:hover {
@@ -388,13 +402,17 @@
         2. Request permission if needed<br>
         3. Subscribe to push notifications<br>
         4. Test local and push notifications<br>
-        5. Check debug log below for detailed information
+        5. Check debug log below for detailed information<br><br>
+        <strong>Note:</strong> For notifications to work on mobile, you must enable notifications for Chrome/your browser in your phone's system settings (Settings → Apps → Chrome → Notifications).
       </div>
 
       <div class="debug-log">
         <div class="debug-log-header">
           <span class="debug-log-title">📋 Debug Log</span>
-          <button class="debug-log-clear" id="clear-log-btn">Clear</button>
+          <div class="debug-log-buttons">
+            <button class="debug-log-copy" id="copy-log-btn">Copy</button>
+            <button class="debug-log-clear" id="clear-log-btn">Clear</button>
+          </div>
         </div>
         <div class="debug-log-content" id="debug-log-content">
           <div class="log-entry info">Debug log initialized. Actions will appear here.</div>
@@ -504,6 +522,32 @@
       const consoleMethod = type === 'error' ? console.error : console.log;
       consoleMethod(`[${timestamp}] ${message}`);
     }
+
+    // Copy log button
+    document.getElementById('copy-log-btn').addEventListener('click', async () => {
+      const logContent = document.getElementById('debug-log-content');
+      const logEntries = logContent.querySelectorAll('.log-entry');
+
+      let logText = 'Debug Log\n' + '='.repeat(50) + '\n\n';
+
+      logEntries.forEach(entry => {
+        logText += entry.textContent + '\n';
+      });
+
+      try {
+        await navigator.clipboard.writeText(logText);
+        const btn = document.getElementById('copy-log-btn');
+        const originalText = btn.textContent;
+        btn.textContent = 'Copied!';
+        setTimeout(() => {
+          btn.textContent = originalText;
+        }, 2000);
+      } catch (error) {
+        addDebugLog(`❌ Failed to copy: ${error.message}`, 'error');
+        // Fallback: show alert with text to manually copy
+        alert('Failed to copy automatically. Here is the log:\n\n' + logText);
+      }
+    });
 
     // Clear log button
     document.getElementById('clear-log-btn').addEventListener('click', () => {
