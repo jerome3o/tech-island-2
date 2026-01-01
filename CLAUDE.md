@@ -1,22 +1,47 @@
 # Towerhouse Apps Platform
 
-This is a rapid application development platform deployed to Cloudflare Workers. It's designed so that Claude Code (or any AI agent) can quickly add new apps by following this guide.
+> **For AI Agents**: This file is your guide to working in this codebase. Read it fully before making changes.
+
+## Meta Instructions for Agents
+
+**IMPORTANT**: If you make meaningful changes to this codebase that would affect how other agents work here, update this file. This includes:
+- Adding new apps or features
+- Changing the project structure
+- Adding new libraries or patterns
+- Modifying how routing, auth, or middleware works
+- Adding new environment variables or secrets
+
+Do NOT update this file for:
+- Bug fixes that don't change patterns
+- Minor UI tweaks
+- Routine maintenance
+
+This repo is designed for "fire and forget" agents - you may be one of many agents working here in parallel. Keep this doc accurate so others can orient quickly.
+
+---
 
 ## Architecture Overview
 
 - **Runtime**: Cloudflare Workers (single worker, multi-app routing)
-- **Frontend**: Static assets served from `public/`, with per-app UI in `src/apps/{app}/ui/`
+- **Frontend**: Static assets served from `public/`, with per-app UI in `public/{app-name}/`
 - **Database**: Cloudflare D1 (SQLite)
 - **Auth**: Cloudflare Access (users authenticated via email OTP or Google)
-- **Domain**: `app.towerhouse.london`
+- **Domain**: Protected via Cloudflare Access (workers.dev URL is disabled)
 - **Framework**: Hono (lightweight, fast, Workers-native)
+- **CI/CD**: GitHub Actions - auto-deploys on push to main
 
 ## How to Add a New App
 
-### 1. Create the app folder
+### 1. Create the app folder structure
 
 ```bash
-cp -r src/apps/_template src/apps/{your-app-name}
+# Create API
+mkdir -p src/apps/{your-app-name}
+cp src/apps/_template/api.ts src/apps/{your-app-name}/api.ts
+
+# Create UI
+mkdir -p public/{your-app-name}
+cp src/apps/_template/ui/index.html public/{your-app-name}/index.html
 ```
 
 ### 2. Implement your API routes
@@ -25,15 +50,12 @@ Edit `src/apps/{your-app-name}/api.ts`:
 
 ```typescript
 import { Hono } from 'hono';
-import { AppContext } from '@/types';
+import type { AppContext } from '../../types';
 
 const app = new Hono<AppContext>();
 
-// Your routes here
-app.get('/', (c) => c.json({ message: 'Hello from your app!' }));
-
-// Example: Use the database
-app.get('/items', async (c) => {
+// Your routes - these will be mounted at /{your-app-name}/api/*
+app.get('/api/items', async (c) => {
   const db = c.env.DB;
   const user = c.get('user');
   const items = await db.prepare('SELECT * FROM items WHERE user_id = ?').bind(user.id).all();
@@ -41,7 +63,7 @@ app.get('/items', async (c) => {
 });
 
 // Example: Use Claude API
-app.post('/generate', async (c) => {
+app.post('/api/generate', async (c) => {
   const { prompt } = await c.req.json();
   const claude = c.get('claude');
   const response = await claude.messages.create({
@@ -57,50 +79,53 @@ export default app;
 
 ### 3. Register your app in the router
 
-Edit `src/index.ts` and add your app:
+Edit `src/index.ts`:
 
 ```typescript
 import yourApp from './apps/your-app-name/api';
 
-// In the routing section:
+// In the app routes section:
 app.route('/your-app-name', yourApp);
 ```
 
-### 4. Create your UI (optional)
+### 4. Create your UI
 
-Create `src/apps/{your-app-name}/ui/index.html`. This will be served at `/your-app-name/`.
+Edit `public/{your-app-name}/index.html`. The UI should:
+- Call your API at `/{your-app-name}/api/*`
+- Be a single HTML file with inline CSS/JS (keeps things simple)
+- Include a back link to `/` for navigation
 
-The UI should:
-- Fetch data from your API at `/your-app-name/api/*`
-- Be a single HTML file (or use a simple build step if needed)
-- Work as part of the PWA
+### 5. Add to the apps list
 
-### 5. Add database migrations (if needed)
+Edit `src/apps/home/api.ts` and add your app to the `apps` array:
 
-Create a new migration file in `migrations/`:
-
-```bash
-touch migrations/XXXX_{description}.sql
+```typescript
+{
+  id: 'your-app-name',
+  name: 'Your App Name',
+  description: 'What it does',
+  path: '/your-app-name',
+  icon: '🚀'  // Pick an emoji
+}
 ```
 
-Number it sequentially (e.g., `0002_add_flashcards.sql`).
+### 6. Add database migrations (if needed)
 
-Run migrations:
-```bash
-npm run db:migrate        # Local
-npm run db:migrate:prod   # Production
-```
+Create `migrations/XXXX_{description}.sql` (number sequentially).
+
+Migrations run automatically on deploy via GitHub Actions.
 
 ## Available Helpers
 
 ### Authentication (`src/lib/auth.ts`)
 
-The user is automatically available in all routes via Cloudflare Access JWT:
+User is automatically available in all `/api/*` and `/*/api/*` routes:
 
 ```typescript
 const user = c.get('user');
 // user.email - User's email address
-// user.id - Unique user ID from CF Access
+// user.id - Unique user ID (hash of email)
+// user.name - Display name (from email)
 ```
 
 ### Database (`src/lib/db.ts`)
@@ -114,7 +139,7 @@ const result = await c.env.DB.prepare('SELECT * FROM table WHERE id = ?').bind(i
 // Insert
 await c.env.DB.prepare('INSERT INTO table (col) VALUES (?)').bind(value).run();
 
-// Batch operations
+// Batch
 await c.env.DB.batch([
   c.env.DB.prepare('INSERT INTO table (col) VALUES (?)').bind('a'),
   c.env.DB.prepare('INSERT INTO table (col) VALUES (?)').bind('b'),
@@ -123,7 +148,7 @@ await c.env.DB.batch([
 
 ### Claude API (`src/lib/claude.ts`)
 
-An Anthropic client is available via middleware:
+Anthropic client available via middleware:
 
 ```typescript
 const claude = c.get('claude');
@@ -134,16 +159,17 @@ const response = await claude.messages.create({
 });
 ```
 
+Also available: `generateText()` and `generateStructured()` helpers.
+
 ### Push Notifications (`src/lib/push.ts`)
 
 ```typescript
 import { sendPushNotification, getSubscription } from '@/lib/push';
 
-// Send to a specific user
 const subscription = await getSubscription(c.env.DB, userId);
 if (subscription) {
   await sendPushNotification(c.env, subscription, {
-    title: 'New notification',
+    title: 'Notification',
     body: 'Something happened!',
     url: '/your-app-name/'
   });
@@ -153,82 +179,74 @@ if (subscription) {
 ## Project Structure
 
 ```
-├── CLAUDE.md                     # This file
-├── wrangler.toml                 # Cloudflare config
+├── CLAUDE.md                     # This file (for AI agents)
+├── README.md                     # For humans
+├── wrangler.toml                 # Cloudflare Workers config
 ├── package.json
 ├── tsconfig.json
-├── migrations/                   # D1 schema migrations
+├── migrations/                   # D1 database migrations
 │   └── 0001_initial.sql
-├── public/                       # Static assets
+├── public/                       # Static assets (served automatically)
+│   ├── index.html                # Home page
 │   ├── manifest.json             # PWA manifest
 │   ├── sw.js                     # Service worker
-│   └── icons/
+│   ├── icons/
+│   └── {app-name}/               # Per-app UI files
+│       └── index.html
 ├── src/
-│   ├── index.ts                  # Main worker entry point
-│   ├── types.ts                  # Shared types
+│   ├── index.ts                  # Main worker entry + routing
+│   ├── types.ts                  # Shared TypeScript types
 │   ├── lib/
-│   │   ├── auth.ts               # Auth helpers
-│   │   ├── db.ts                 # Database helpers
+│   │   ├── auth.ts               # Cloudflare Access auth
+│   │   ├── db.ts                 # D1 database helpers
 │   │   ├── claude.ts             # Anthropic API wrapper
 │   │   └── push.ts               # Push notification helpers
 │   └── apps/
-│       ├── _template/            # Copy this to create a new app
-│       │   ├── api.ts
-│       │   └── ui/
-│       │       └── index.html
-│       ├── home/                 # Landing page / app launcher
+│       ├── _template/            # Copy this for new apps
+│       ├── home/                 # Landing page API
 │       └── hello/                # Example app
-└── .github/
-    └── workflows/
-        └── deploy.yml            # CI/CD - auto-deploys on push to main
+└── .github/workflows/
+    ├── setup.yml                 # One-time infra setup
+    └── deploy.yml                # Auto-deploy on push
 ```
 
 ## Development
 
 ```bash
-# Install dependencies
-npm install
-
-# Run locally
-npm run dev
-
-# Deploy
-npm run deploy
+npm install                    # Install deps
+npm run dev                    # Local development
+npm run typecheck              # Check types
+npm run deploy                 # Manual deploy (usually just push to main)
 ```
 
-## Secrets
+## CI/CD & Secrets
 
-These secrets must be set via `wrangler secret put`:
+Deployment is automatic via GitHub Actions on push to `main`.
 
-- `ANTHROPIC_API_KEY` - Your Anthropic API key
-- `VAPID_PUBLIC_KEY` - For push notifications (generate with `npm run generate-vapid`)
+**GitHub Secrets required:**
+- `CLOUDFLARE_API_TOKEN` - API token with Workers + D1 permissions
+- `CLOUDFLARE_ACCOUNT_ID` - Your Cloudflare account ID
+- `ANTHROPIC_API_KEY` - Anthropic API key
+- `VAPID_PUBLIC_KEY` - For push notifications
 - `VAPID_PRIVATE_KEY` - For push notifications
+- `APP_URL` - The app URL (e.g., `https://app.towerhouse.london`)
 
-## Initial Setup (one-time)
+**Generate VAPID keys locally:**
+```bash
+npm run generate-vapid
+```
 
-1. Create the D1 database:
-   ```bash
-   wrangler d1 create towerhouse-db
-   ```
-   Then update `wrangler.toml` with the database ID.
+## Current Apps
 
-2. Run migrations:
-   ```bash
-   npm run db:migrate:prod
-   ```
+| App | Path | Description |
+|-----|------|-------------|
+| Home | `/` | App launcher, user info, notification setup |
+| Hello | `/hello` | Example app with greeting, AI greeting, visit counter |
 
-3. Set up Cloudflare Access:
-   - Go to Cloudflare Zero Trust dashboard
-   - Create an Access application for `app.towerhouse.london`
-   - Add your friends' emails to the allowed list
+## Notes for Agents
 
-4. Set secrets:
-   ```bash
-   wrangler secret put ANTHROPIC_API_KEY
-   npm run generate-vapid  # Follow the instructions to set VAPID keys
-   ```
-
-5. Deploy:
-   ```bash
-   npm run deploy
-   ```
+- **Middleware**: Auth and Claude middleware apply to `/api/*` AND `/*/api/*` routes
+- **Static files**: Put UI in `public/{app}/index.html`, not in `src/apps/{app}/ui/`
+- **workers.dev disabled**: Only the custom domain works (protected by Cloudflare Access)
+- **Observability**: Logging is enabled - check Cloudflare dashboard for logs
+- **TypeScript**: Always run `npm run typecheck` before committing
