@@ -597,10 +597,10 @@
         const response = await fetch(`/boggle/api/games/${currentGameId}/state`);
         const data = await response.json();
 
-        if (!currentUserId && data.players.results && data.players.results.length > 0) {
+        if (!currentUserId && data.players && data.players.length > 0) {
           // Try to determine current user (this is a simplification)
           // In a real app, you'd get this from auth
-          currentUserId = data.players.results[0].user_id;
+          currentUserId = data.players[0].user_id;
         }
 
         if (data.game.state === 'lobby') {
@@ -620,7 +620,7 @@
       const playersDiv = document.getElementById('lobbyPlayers');
       const actionsDiv = document.getElementById('lobbyActions');
 
-      playersDiv.innerHTML = data.players.results.map(p =>
+      playersDiv.innerHTML = data.players.map(p =>
         `<div class="player-tag">${p.user_id.substring(0, 8)}</div>`
       ).join('');
 
@@ -657,7 +657,7 @@
 
       // Update scoreboard
       const scoreboardDiv = document.getElementById('scoreboard');
-      scoreboardDiv.innerHTML = data.players.results.map(p => `
+      scoreboardDiv.innerHTML = data.players.map(p => `
         <div class="player-score">
           <span class="player-name">${p.user_id.substring(0, 8)}</span>
           <span class="player-points">${p.score} pts</span>
@@ -680,7 +680,7 @@
 
       // Final scores
       const scoresDiv = document.getElementById('finalScores');
-      const sortedPlayers = [...data.players.results].sort((a, b) => b.score - a.score);
+      const sortedPlayers = [...data.players].sort((a, b) => b.score - a.score);
       const maxScore = sortedPlayers[0]?.score || 0;
 
       scoresDiv.innerHTML = sortedPlayers.map((p, index) => `
