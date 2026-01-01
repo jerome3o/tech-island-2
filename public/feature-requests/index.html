@@ -46,12 +46,80 @@
       opacity: 1;
     }
 
+    /* Floating Add Button */
+    .fab {
+      position: fixed;
+      bottom: 30px;
+      right: 30px;
+      width: 60px;
+      height: 60px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 50%;
+      border: none;
+      color: white;
+      font-size: 2em;
+      cursor: pointer;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+      transition: transform 0.2s, box-shadow 0.2s;
+      z-index: 100;
+    }
+
+    .fab:hover {
+      transform: scale(1.1);
+      box-shadow: 0 6px 25px rgba(0, 0, 0, 0.4);
+    }
+
+    /* Modal Overlay */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.7);
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .modal-overlay.active {
+      display: flex;
+    }
+
     .form-card {
       background: white;
       border-radius: 12px;
       padding: 25px;
-      margin-bottom: 30px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+      max-width: 600px;
+      width: 100%;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+      position: relative;
+    }
+
+    .close-btn {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      background: none;
+      border: none;
+      font-size: 1.5em;
+      cursor: pointer;
+      color: #888;
+      width: 30px;
+      height: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      transition: background 0.2s;
+    }
+
+    .close-btn:hover {
+      background: #f0f0f0;
     }
 
     .form-card h2 {
@@ -138,6 +206,7 @@
     .requests-list {
       display: grid;
       gap: 20px;
+      padding-bottom: 100px; /* Space for FAB */
     }
 
     .request-card {
@@ -190,6 +259,7 @@
       gap: 8px;
       padding-top: 15px;
       border-top: 1px solid #e0e0e0;
+      position: relative;
     }
 
     .reaction-btn {
@@ -216,9 +286,60 @@
       color: white;
     }
 
+    .reaction-btn.add-reaction {
+      background: #f8f8f8;
+      border-color: #ddd;
+      font-size: 1em;
+      padding: 6px 12px;
+    }
+
+    .reaction-btn.add-reaction:hover {
+      background: #667eea;
+      border-color: #667eea;
+      color: white;
+    }
+
     .reaction-count {
       font-size: 0.8em;
       font-weight: 600;
+    }
+
+    /* Reaction Picker Popup */
+    .reaction-picker {
+      display: none;
+      position: absolute;
+      bottom: 100%;
+      left: 0;
+      background: white;
+      border: 2px solid #e0e0e0;
+      border-radius: 12px;
+      padding: 10px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+      z-index: 10;
+      flex-wrap: wrap;
+      gap: 8px;
+      max-width: 280px;
+      margin-bottom: 8px;
+    }
+
+    .reaction-picker.active {
+      display: flex;
+    }
+
+    .reaction-picker-btn {
+      font-size: 1.5em;
+      padding: 8px;
+      background: white;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .reaction-picker-btn:hover {
+      transform: scale(1.1);
+      border-color: #667eea;
+      background: #f0f4ff;
     }
 
     .loading {
@@ -246,7 +367,16 @@
       <p>Share your ideas and vote on features you'd like to see!</p>
     </div>
 
+    <div id="requestsList"></div>
+  </div>
+
+  <!-- Floating Action Button -->
+  <button class="fab" id="openFormBtn">+</button>
+
+  <!-- Modal for Submit Form -->
+  <div class="modal-overlay" id="formModal">
     <div class="form-card">
+      <button class="close-btn" id="closeFormBtn">×</button>
       <h2>Submit a New Idea</h2>
       <form id="submitForm">
         <div class="form-group">
@@ -280,13 +410,32 @@
         <button type="submit" class="submit-btn">Submit Feature Request</button>
       </form>
     </div>
-
-    <div id="requestsList"></div>
   </div>
 
   <script>
     const REACTION_EMOJIS = ['❤️', '👍', '👎', '😂', '🎉', '🤔', '👀', '🔥'];
     let selectedIcon = '💡';
+    let currentPickerId = null;
+
+    // Modal controls
+    const formModal = document.getElementById('formModal');
+    const openFormBtn = document.getElementById('openFormBtn');
+    const closeFormBtn = document.getElementById('closeFormBtn');
+
+    openFormBtn.addEventListener('click', () => {
+      formModal.classList.add('active');
+    });
+
+    closeFormBtn.addEventListener('click', () => {
+      formModal.classList.remove('active');
+    });
+
+    // Close modal when clicking outside
+    formModal.addEventListener('click', (e) => {
+      if (e.target === formModal) {
+        formModal.classList.remove('active');
+      }
+    });
 
     // Icon picker
     document.getElementById('iconPicker').addEventListener('click', (e) => {
@@ -324,11 +473,11 @@
         document.getElementById('title').value = '';
         document.getElementById('description').value = '';
 
+        // Close modal
+        formModal.classList.remove('active');
+
         // Reload requests
         await loadRequests();
-
-        // Scroll to top of list
-        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
       } catch (error) {
         alert('Failed to submit feature request. Please try again.');
       } finally {
@@ -336,6 +485,47 @@
         btn.textContent = 'Submit Feature Request';
       }
     });
+
+    // Toggle reaction picker
+    function toggleReactionPicker(requestId) {
+      const picker = document.getElementById(`picker-${requestId}`);
+      const wasActive = picker.classList.contains('active');
+
+      // Close all pickers
+      document.querySelectorAll('.reaction-picker').forEach(p => p.classList.remove('active'));
+
+      // Toggle this one
+      if (!wasActive) {
+        picker.classList.add('active');
+        currentPickerId = requestId;
+      } else {
+        currentPickerId = null;
+      }
+    }
+
+    // Close picker when clicking outside
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.reactions')) {
+        document.querySelectorAll('.reaction-picker').forEach(p => p.classList.remove('active'));
+        currentPickerId = null;
+      }
+    });
+
+    // React to a request
+    async function reactToRequest(requestId, emoji) {
+      try {
+        await fetch(`/feature-requests/api/requests/${requestId}/react`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ emoji })
+        });
+
+        // Reload to show updated counts
+        await loadRequests();
+      } catch (error) {
+        alert('Failed to update reaction. Please try again.');
+      }
+    }
 
     // Load and display requests
     async function loadRequests() {
@@ -351,51 +541,74 @@
           return;
         }
 
-        container.innerHTML = requests.map(req => `
-          <div class="request-card">
-            <div class="request-header">
-              <div class="request-icon">${req.icon}</div>
-              <div class="request-title">
-                <h3>${escapeHtml(req.title)}</h3>
-                <div class="request-meta">
-                  Submitted ${new Date(req.created_at * 1000).toLocaleDateString()}
+        container.innerHTML = requests.map(req => {
+          // Get reactions that have counts
+          const activeReactions = REACTION_EMOJIS.filter(emoji => (req.reactions[emoji] || 0) > 0);
+
+          return `
+            <div class="request-card">
+              <div class="request-header">
+                <div class="request-icon">${req.icon}</div>
+                <div class="request-title">
+                  <h3>${escapeHtml(req.title)}</h3>
+                  <div class="request-meta">
+                    Submitted ${new Date(req.created_at * 1000).toLocaleDateString()}
+                  </div>
                 </div>
               </div>
+              <div class="request-description">${escapeHtml(req.description)}</div>
+              <div class="reactions" data-request-id="${req.id}">
+                <div class="reaction-picker" id="picker-${req.id}">
+                  ${REACTION_EMOJIS.map(emoji => `
+                    <button class="reaction-picker-btn" data-emoji="${emoji}" data-request-id="${req.id}">
+                      ${emoji}
+                    </button>
+                  `).join('')}
+                </div>
+                ${activeReactions.map(emoji => {
+                  const count = req.reactions[emoji];
+                  const isActive = req.user_reactions.includes(emoji);
+                  return `
+                    <button class="reaction-btn ${isActive ? 'active' : ''}" data-emoji="${emoji}" data-request-id="${req.id}">
+                      <span>${emoji}</span>
+                      <span class="reaction-count">${count}</span>
+                    </button>
+                  `;
+                }).join('')}
+                <button class="reaction-btn add-reaction" data-request-id="${req.id}">
+                  + Add Reaction
+                </button>
+              </div>
             </div>
-            <div class="request-description">${escapeHtml(req.description)}</div>
-            <div class="reactions" data-request-id="${req.id}">
-              ${REACTION_EMOJIS.map(emoji => {
-                const count = req.reactions[emoji] || 0;
-                const isActive = req.user_reactions.includes(emoji);
-                return `
-                  <button class="reaction-btn ${isActive ? 'active' : ''}" data-emoji="${emoji}">
-                    <span>${emoji}</span>
-                    ${count > 0 ? `<span class="reaction-count">${count}</span>` : ''}
-                  </button>
-                `;
-              }).join('')}
-            </div>
-          </div>
-        `).join('');
+          `;
+        }).join('');
 
         // Add reaction click handlers
-        container.querySelectorAll('.reaction-btn').forEach(btn => {
-          btn.addEventListener('click', async () => {
+        container.querySelectorAll('.reaction-btn:not(.add-reaction)').forEach(btn => {
+          btn.addEventListener('click', async (e) => {
+            e.stopPropagation();
             const emoji = btn.dataset.emoji;
-            const requestId = btn.closest('.reactions').dataset.requestId;
+            const requestId = btn.dataset.requestId;
+            await reactToRequest(requestId, emoji);
+          });
+        });
 
-            try {
-              await fetch(`/feature-requests/api/requests/${requestId}/react`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ emoji })
-              });
+        // Add "Add Reaction" button handlers
+        container.querySelectorAll('.add-reaction').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const requestId = btn.dataset.requestId;
+            toggleReactionPicker(requestId);
+          });
+        });
 
-              // Reload to show updated counts
-              await loadRequests();
-            } catch (error) {
-              alert('Failed to update reaction. Please try again.');
-            }
+        // Add reaction picker button handlers
+        container.querySelectorAll('.reaction-picker-btn').forEach(btn => {
+          btn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            const emoji = btn.dataset.emoji;
+            const requestId = btn.dataset.requestId;
+            await reactToRequest(requestId, emoji);
           });
         });
       } catch (error) {
