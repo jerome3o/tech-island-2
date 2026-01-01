@@ -20,6 +20,7 @@ import beboApp from './apps/bebo/api';
 import featureRequestsApp from './apps/feature-requests/api';
 import flashcardsApp from './apps/flashcards/api';
 import hotTakesApp from './apps/hot-takes/api';
+import paintApp from './apps/paint/api';
 
 const app = new Hono<AppContext>();
 
@@ -128,6 +129,7 @@ app.route('/bebo', beboApp);
 app.route('/feature-requests', featureRequestsApp);
 app.route('/flashcards', flashcardsApp);
 app.route('/hot-takes', hotTakesApp);
+app.route('/paint', paintApp);
 
 // ============================================
 // Static file serving
