@@ -9,6 +9,7 @@
     "db:migrate": "wrangler d1 migrations apply towerhouse-db --local",
     "db:migrate:prod": "wrangler d1 migrations apply towerhouse-db --remote",
     "generate-vapid": "npx tsx scripts/generate-vapid-keys.ts",
+    "generate-icons": "node scripts/generate-icons.mjs",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -19,6 +20,7 @@
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20241127.0",
     "@types/web-push": "^3.6.4",
+    "sharp": "^0.34.5",
     "tsx": "^4.19.0",
     "typescript": "^5.7.0",
     "wrangler": "^3.93.0"
