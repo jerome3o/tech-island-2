@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import type { AppContext } from '../../types';
+import { sendNtfyNotification } from '../../lib/ntfy';
 
 const app = new Hono<AppContext>();
 
@@ -351,6 +352,32 @@ app.get('/api/games/:id/state', async (c) => {
         ORDER BY p.score DESC, p.joined_at ASC
       `).bind(gameId).all();
       players.results = updatedPlayers.results;
+
+      // Send ntfy notification about game completion
+      const playersArray = updatedPlayers.results as any[];
+      if (playersArray.length > 0) {
+        const winner = playersArray[0];
+        const winnerName = winner.alias || winner.email?.split('@')[0] || 'Unknown';
+
+        // Build player scores list
+        const playerScores = playersArray
+          .map((p: any) => {
+            const name = p.alias || p.email?.split('@')[0] || 'Unknown';
+            return `${name}: ${p.score}`;
+          })
+          .join(', ');
+
+        const message = `Game finished!\n\nWinner: ${winnerName} (${winner.score} points)\n\nPlayers: ${playerScores}`;
+
+        // Send notification (non-blocking)
+        sendNtfyNotification(c.env, {
+          title: '🎲 Boggle Game Finished!',
+          message,
+          priority: 'default',
+          tags: ['game', 'boggle'],
+          click: `${c.env.APP_URL}/boggle/?game=${gameId}`,
+        }).catch(err => console.error('Failed to send ntfy notification:', err));
+      }
     }
 
     // Build words list for display (always show, even on subsequent polls)
