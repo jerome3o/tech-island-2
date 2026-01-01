@@ -133,16 +133,19 @@ async function createVapidAuthToken(
   const unsignedToken = `${encodedHeader}.${encodedPayload}`;
 
   // Import private key for signing
-  // VAPID private keys are raw 32-byte scalars, but Web Crypto API requires JWK format for private keys
-  const privateKeyBuffer = base64UrlDecode(vapidPrivateKey);
+  // VAPID private keys might be in JWK format or raw bytes
+  let jwk: any;
 
-  // Convert raw private key to JWK format
-  const jwk = {
-    kty: 'EC',
-    crv: 'P-256',
-    d: base64UrlEncode(privateKeyBuffer.buffer),
-    ext: true
-  };
+  try {
+    // Try parsing as JSON first (in case it's already a JWK)
+    jwk = JSON.parse(vapidPrivateKey);
+    console.log('VAPID private key is in JWK format');
+  } catch {
+    // If not JSON, assume it's base64url-encoded raw bytes
+    // For raw EC private keys, we need both the private scalar (d) and public point (x, y)
+    // This is a limitation - raw format doesn't work without the public key
+    throw new Error('VAPID private key must be in JWK format (not raw bytes). Please regenerate VAPID keys with JWK format.');
+  }
 
   const cryptoKey = await crypto.subtle.importKey(
     'jwk',
