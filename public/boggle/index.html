@@ -422,8 +422,21 @@
         <div class="actions">
           <button onclick="showCreateGame()">Create New Game</button>
           <button onclick="loadGames()">Refresh</button>
+          <button onclick="showGameHistory()" style="background: #64748b;">📜 History</button>
         </div>
         <div id="gamesList" class="game-list" style="margin-top: 20px;"></div>
+      </div>
+    </div>
+
+    <!-- Game History View -->
+    <div id="gameHistoryView" class="view">
+      <div class="card">
+        <h2 style="margin-bottom: 20px;">Game History</h2>
+        <div class="actions">
+          <button onclick="showLobbyList()">← Back to Lobby</button>
+          <button onclick="loadGameHistory()">Refresh</button>
+        </div>
+        <div id="historyList" class="game-list" style="margin-top: 20px;"></div>
       </div>
     </div>
 
@@ -501,7 +514,7 @@
           </details>
         </div>
 
-        <div class="actions">
+        <div class="actions" id="resultsActions">
           <button onclick="showLobbyList(); loadGames();">Back to Lobby</button>
         </div>
       </div>
@@ -515,6 +528,7 @@
     let currentBoard = [];
     let selectedPath = []; // Array of tile indices
     let currentWord = '';
+    let viewingPastGame = false;
 
     // Initialize
     async function init() {
@@ -701,6 +715,70 @@
       showView('createGameView');
     }
 
+    function showGameHistory() {
+      showView('gameHistoryView');
+      stopPolling();
+      loadGameHistory();
+    }
+
+    // Load game history
+    async function loadGameHistory() {
+      try {
+        const response = await fetch('/boggle/api/history');
+        const data = await response.json();
+
+        const historyList = document.getElementById('historyList');
+
+        if (data.games.length === 0) {
+          historyList.innerHTML = `
+            <div class="empty-state">
+              <h3>No Game History</h3>
+              <p>Play some games to see your history here!</p>
+            </div>
+          `;
+          return;
+        }
+
+        historyList.innerHTML = data.games.map(game => {
+          const date = new Date(game.created_at);
+          const winnerName = game.winner ? getDisplayName(game.winner) : 'Unknown';
+          const winnerScore = game.winner ? game.winner.score : 0;
+
+          return `
+            <div class="game-item">
+              <div class="game-info">
+                <h3>${date.toLocaleDateString()} ${date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</h3>
+                <div class="game-meta">
+                  ${game.player_count} player${game.player_count !== 1 ? 's' : ''} •
+                  Winner: ${winnerName} (${winnerScore} pts)
+                </div>
+              </div>
+              <button onclick="viewPastGame('${game.id}')">View Details</button>
+            </div>
+          `;
+        }).join('');
+      } catch (error) {
+        console.error('Failed to load game history:', error);
+      }
+    }
+
+    // View a past game
+    async function viewPastGame(gameId) {
+      try {
+        viewingPastGame = true;
+        currentGameId = gameId;
+        const response = await fetch(`/boggle/api/games/${gameId}/state`);
+        const data = await response.json();
+
+        // Use the same results view to show the past game
+        updateResultsView(data);
+      } catch (error) {
+        console.error('Failed to load past game:', error);
+        alert('Failed to load game details');
+        viewingPastGame = false;
+      }
+    }
+
     // Load games list
     async function loadGames() {
       try {
@@ -782,6 +860,7 @@
 
     // Join game lobby
     function joinGameLobby(gameId) {
+      viewingPastGame = false;
       showView('gameLobbyView');
       startPolling();
     }
@@ -811,31 +890,38 @@
       }
     }
 
-    // Submit word
+    // Submit word (non-blocking for better UX)
     async function submitWord() {
       if (!currentWord || currentWord.length < 3) return;
 
-      try {
-        const response = await fetch(`/boggle/api/games/${currentGameId}/submit`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ word: currentWord })
-        });
+      // Save the word and clear immediately (optimistic UI)
+      const submittedWord = currentWord;
+      clearWord();
 
-        const data = await response.json();
+      // Submit in background (don't await)
+      fetch(`/boggle/api/games/${currentGameId}/submit`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ word: submittedWord })
+      })
+      .then(response => response.json().then(data => ({ response, data })))
+      .then(({ response, data }) => {
         const messageDiv = document.getElementById('wordMessage');
 
         if (response.ok) {
           messageDiv.innerHTML = `<div class="message success">✓ ${data.word} (+${data.points} pts)</div>`;
-          clearWord(); // Clear the word after successful submission
           setTimeout(() => messageDiv.innerHTML = '', 2000);
         } else {
           messageDiv.innerHTML = `<div class="message error">✗ ${data.error}</div>`;
           setTimeout(() => messageDiv.innerHTML = '', 3000);
         }
-      } catch (error) {
+      })
+      .catch(error => {
         console.error('Failed to submit word:', error);
-      }
+        const messageDiv = document.getElementById('wordMessage');
+        messageDiv.innerHTML = `<div class="message error">✗ Network error</div>`;
+        setTimeout(() => messageDiv.innerHTML = '', 3000);
+      });
     }
 
     // Poll game state
@@ -980,6 +1066,14 @@
         allWords: data.allWords,
         timestamp: new Date().toISOString()
       }, null, 2);
+
+      // Update back button based on context
+      const actionsDiv = document.getElementById('resultsActions');
+      if (viewingPastGame) {
+        actionsDiv.innerHTML = '<button onclick="showGameHistory();">← Back to History</button>';
+      } else {
+        actionsDiv.innerHTML = '<button onclick="showLobbyList(); loadGames();">Back to Lobby</button>';
+      }
     }
 
     // Copy debug data to clipboard
