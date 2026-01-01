@@ -45,7 +45,7 @@ Rules:
 3. For each card provide:
    - Chinese characters (simplified Chinese)
    - English translation
-   - Pinyin with tone marks (use numbers: ni3 hao3)
+   - Pinyin with tone marks using accents (e.g., nǐ hǎo, NOT ni3 hao3)
    - Character-by-character breakdown (each character's pinyin and individual meaning)
    - 2-3 example sentences using the word/phrase in context
 
@@ -72,7 +72,7 @@ Make cards useful for intermediate learners. Focus on practical, everyday usage.
               },
               pinyin: {
                 type: 'string',
-                description: 'Pinyin with tone numbers (e.g., ni3 hao3)'
+                description: 'Pinyin with tone marks using accents (e.g., nǐ hǎo)'
               },
               breakdown: {
                 type: 'array',
