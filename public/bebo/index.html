@@ -61,9 +61,15 @@
     /* User Grid */
     .user-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
       gap: 1rem;
       margin-top: 1rem;
+    }
+
+    @media (max-width: 640px) {
+      .user-grid {
+        grid-template-columns: 1fr;
+      }
     }
 
     .user-card {
@@ -83,6 +89,12 @@
       height: 100px;
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       position: relative;
+    }
+
+    .user-card-cover img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
     }
 
     .user-card-avatar {
@@ -637,10 +649,10 @@
 
         grid.innerHTML = users.map(user => `
           <div class="user-card" onclick="showView('profile', '${user.user_id}')">
-            <div class="user-card-cover" ${user.cover_photo_key ? `style="background: none;"` : ''}>
+            <div class="user-card-cover">
               ${user.cover_photo_key ? `<img src="/bebo/images/${user.cover_photo_key}" alt="Cover">` : ''}
-              <div class="user-card-avatar" ${user.profile_pic_key ? `style="background: none;"` : ''}>
-                ${user.profile_pic_key ? `<img src="/bebo/images/${user.profile_pic_key}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">` : ''}
+              <div class="user-card-avatar">
+                ${user.profile_pic_key ? `<img src="/bebo/images/${user.profile_pic_key}" alt="Profile" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">` : ''}
               </div>
             </div>
             <div class="user-card-body">
