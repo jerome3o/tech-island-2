@@ -281,38 +281,49 @@ export async function sendPushNotification(
   payload: NotificationPayload
 ): Promise<boolean> {
   try {
-    console.log('Sending push notification to:', subscription.endpoint.substring(0, 50) + '...');
+    console.log('=== Push Notification Debug ===');
+    console.log('Endpoint:', subscription.endpoint);
+    console.log('Payload:', JSON.stringify(payload));
 
     // Create VAPID auth token
+    console.log('Creating VAPID auth token...');
     const vapidToken = await createVapidAuthToken(
       subscription.endpoint,
       env.VAPID_PUBLIC_KEY,
       env.VAPID_PRIVATE_KEY
     );
-
-    console.log('VAPID token created');
+    console.log('VAPID token created:', vapidToken.substring(0, 50) + '...');
 
     // Encrypt payload
+    console.log('Encrypting payload...');
     const payloadString = JSON.stringify(payload);
+    console.log('Payload string length:', payloadString.length);
     const encrypted = await encryptPayload(
       payloadString,
       subscription.keys.p256dh,
       subscription.keys.auth
     );
+    console.log('Payload encrypted. Body size:', encrypted.body.byteLength);
+    console.log('Salt:', encrypted.salt.substring(0, 20) + '...');
+    console.log('Public key:', encrypted.publicKey.substring(0, 20) + '...');
 
-    console.log('Payload encrypted');
+    // Prepare headers
+    const headers = {
+      'Content-Type': 'application/octet-stream',
+      'Content-Encoding': 'aes128gcm',
+      'Content-Length': encrypted.body.byteLength.toString(),
+      'TTL': '86400',
+      'Authorization': `vapid t=${vapidToken}, k=${env.VAPID_PUBLIC_KEY}`,
+      'Crypto-Key': `p256ecdsa=${env.VAPID_PUBLIC_KEY}`,
+    };
+
+    console.log('Request headers:', JSON.stringify(headers, null, 2));
 
     // Send to push service
+    console.log('Sending request to push service...');
     const response = await fetch(subscription.endpoint, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/octet-stream',
-        'Content-Encoding': 'aes128gcm',
-        'Content-Length': encrypted.body.byteLength.toString(),
-        'TTL': '86400',
-        'Authorization': `vapid t=${vapidToken}, k=${env.VAPID_PUBLIC_KEY}`,
-        'Crypto-Key': `p256ecdsa=${env.VAPID_PUBLIC_KEY}`,
-      },
+      headers,
       body: encrypted.body
     });
 
@@ -320,13 +331,22 @@ export async function sendPushNotification(
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Push notification failed:', response.status, errorText);
+      console.error('Push notification failed!');
+      console.error('Status:', response.status);
+      console.error('Status text:', response.statusText);
+      console.error('Error body:', errorText);
+      console.error('Response headers:', JSON.stringify([...response.headers.entries()]));
       return false;
     }
 
+    console.log('✅ Push notification sent successfully!');
     return true;
   } catch (error) {
-    console.error('Failed to send push notification:', error);
+    console.error('Failed to send push notification - exception thrown:', error);
+    if (error instanceof Error) {
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
+    }
     return false;
   }
 }
