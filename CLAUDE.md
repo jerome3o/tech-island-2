@@ -241,6 +241,7 @@ npm run generate-vapid
 | App | Path | Description |
 |-----|------|-------------|
 | Home | `/` | App launcher, user info, notification setup |
+| Splits | `/splits` | Splitwise clone - expense sharing with groups, balances, settlements |
 | Chat | `/chat` | Shared group chat for all users (polls every 2s) |
 | Hello | `/hello` | Example app with greeting, AI greeting, visit counter |
 

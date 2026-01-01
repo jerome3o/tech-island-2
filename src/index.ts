@@ -13,6 +13,7 @@ import { saveSubscription, deleteSubscription } from './lib/push';
 import homeApp from './apps/home/api';
 import helloApp from './apps/hello/api';
 import chatApp from './apps/chat/api';
+import splitsApp from './apps/splits/api';
 
 const app = new Hono<AppContext>();
 
@@ -94,6 +95,7 @@ app.post('/api/push/test', async (c) => {
 app.route('/', homeApp);
 app.route('/hello', helloApp);
 app.route('/chat', chatApp);
+app.route('/splits', splitsApp);
 
 // ============================================
 // Static file serving

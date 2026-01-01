@@ -7,6 +7,13 @@ const app = new Hono<AppContext>();
 app.get('/api/apps', (c) => {
   const apps = [
     {
+      id: 'splits',
+      name: 'Splits',
+      description: 'Split expenses with friends',
+      path: '/splits',
+      icon: '💸'
+    },
+    {
       id: 'chat',
       name: 'Chat',
       description: 'Group chat for everyone',

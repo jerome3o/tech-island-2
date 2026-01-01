@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Splits - Towerhouse</title>
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#10B981">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f5f5f5;
+      color: #1a1a1a;
+    }
+
+    /* Header */
+    header {
+      background: #10B981;
+      color: white;
+      padding: 1rem;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    header h1 { font-size: 1.25rem; flex: 1; }
+    .back-btn {
+      background: none;
+      border: none;
+      color: white;
+      font-size: 1.5rem;
+      cursor: pointer;
+      padding: 0.25rem;
+    }
+    .header-action {
+      background: rgba(255,255,255,0.2);
+      border: none;
+      color: white;
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+
+    /* Views */
+    .view { display: none; padding: 1rem; padding-bottom: 5rem; }
+    .view.active { display: block; }
+
+    /* Cards */
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.5rem;
+    }
+    .card-title { font-weight: 600; font-size: 1.1rem; }
+    .card-subtitle { color: #666; font-size: 0.85rem; }
+
+    /* Lists */
+    .list-item {
+      display: flex;
+      align-items: center;
+      padding: 1rem;
+      background: white;
+      border-bottom: 1px solid #eee;
+      cursor: pointer;
+      gap: 1rem;
+    }
+    .list-item:first-child { border-radius: 12px 12px 0 0; }
+    .list-item:last-child { border-radius: 0 0 12px 12px; border-bottom: none; }
+    .list-item:only-child { border-radius: 12px; }
+    .list-item:hover { background: #f9f9f9; }
+    .list-icon { font-size: 2rem; }
+    .list-content { flex: 1; }
+    .list-title { font-weight: 500; }
+    .list-subtitle { font-size: 0.85rem; color: #666; }
+    .list-amount { font-weight: 600; text-align: right; }
+    .list-amount.positive { color: #10B981; }
+    .list-amount.negative { color: #EF4444; }
+
+    /* Buttons */
+    .btn {
+      background: #10B981;
+      color: white;
+      border: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: 8px;
+      font-size: 1rem;
+      cursor: pointer;
+      width: 100%;
+    }
+    .btn:disabled { background: #9CA3AF; cursor: not-allowed; }
+    .btn-secondary { background: #E5E7EB; color: #374151; }
+    .btn-danger { background: #EF4444; }
+    .btn-sm { padding: 0.5rem 1rem; font-size: 0.9rem; }
+
+    /* Forms */
+    .form-group { margin-bottom: 1rem; }
+    .form-label { display: block; margin-bottom: 0.5rem; font-weight: 500; }
+    .form-input, .form-select {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid #D1D5DB;
+      border-radius: 8px;
+      font-size: 1rem;
+    }
+    .form-input:focus, .form-select:focus {
+      outline: none;
+      border-color: #10B981;
+    }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      background: white;
+      border-radius: 12px;
+      padding: 0.25rem;
+      margin-bottom: 1rem;
+    }
+    .tab {
+      flex: 1;
+      padding: 0.75rem;
+      border: none;
+      background: none;
+      cursor: pointer;
+      border-radius: 8px;
+      font-weight: 500;
+      color: #666;
+    }
+    .tab.active { background: #10B981; color: white; }
+
+    /* Balance bar */
+    .balance-bar {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 1rem;
+      background: white;
+      border-radius: 12px;
+      margin-bottom: 1rem;
+    }
+    .balance-amount {
+      font-size: 1.5rem;
+      font-weight: 700;
+    }
+    .balance-label { color: #666; font-size: 0.9rem; }
+
+    /* FAB */
+    .fab {
+      position: fixed;
+      bottom: 2rem;
+      right: 1rem;
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: #10B981;
+      color: white;
+      border: none;
+      font-size: 1.5rem;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+      z-index: 50;
+    }
+
+    /* Modal */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 200;
+      align-items: flex-end;
+      justify-content: center;
+    }
+    .modal.active { display: flex; }
+    .modal-content {
+      background: white;
+      width: 100%;
+      max-width: 600px;
+      border-radius: 16px 16px 0 0;
+      padding: 1.5rem;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+    .modal-title { font-size: 1.25rem; font-weight: 600; }
+    .modal-close {
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      cursor: pointer;
+      color: #666;
+    }
+
+    /* Split options */
+    .split-options {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+    .split-option {
+      flex: 1;
+      padding: 0.75rem;
+      border: 2px solid #E5E7EB;
+      border-radius: 8px;
+      background: white;
+      cursor: pointer;
+      text-align: center;
+    }
+    .split-option.active {
+      border-color: #10B981;
+      background: #ECFDF5;
+    }
+
+    /* Member chips */
+    .member-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    .member-chip {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      background: #F3F4F6;
+      border-radius: 20px;
+      font-size: 0.9rem;
+    }
+    .member-chip input {
+      width: 80px;
+      padding: 0.25rem;
+      border: 1px solid #D1D5DB;
+      border-radius: 4px;
+      text-align: right;
+    }
+
+    /* Debt card */
+    .debt-card {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 1rem;
+      background: white;
+      border-radius: 12px;
+      margin-bottom: 0.5rem;
+    }
+    .debt-arrow { color: #10B981; font-size: 1.5rem; }
+    .debt-users { flex: 1; }
+    .debt-amount { font-weight: 600; color: #10B981; }
+
+    /* Category grid */
+    .category-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 0.5rem;
+    }
+    .category-item {
+      padding: 0.75rem;
+      border: 2px solid #E5E7EB;
+      border-radius: 8px;
+      background: white;
+      cursor: pointer;
+      text-align: center;
+      font-size: 1.5rem;
+    }
+    .category-item.active {
+      border-color: #10B981;
+      background: #ECFDF5;
+    }
+    .category-item span {
+      display: block;
+      font-size: 0.7rem;
+      margin-top: 0.25rem;
+      color: #666;
+    }
+
+    /* Empty state */
+    .empty-state {
+      text-align: center;
+      padding: 3rem 1rem;
+      color: #666;
+    }
+    .empty-state-icon { font-size: 4rem; margin-bottom: 1rem; }
+
+    /* Loading */
+    .loading { text-align: center; padding: 2rem; color: #666; }
+
+    /* Utils */
+    .text-center { text-align: center; }
+    .mt-1 { margin-top: 1rem; }
+    .mb-1 { margin-bottom: 1rem; }
+  </style>
+</head>
+<body>
+  <header>
+    <button class="back-btn" id="back-btn" style="display:none;">←</button>
+    <h1 id="header-title">💸 Splits</h1>
+    <button class="header-action" id="header-action" style="display:none;"></button>
+  </header>
+
+  <!-- Groups List View -->
+  <div id="view-groups" class="view active">
+    <div id="groups-list" class="loading">Loading groups...</div>
+    <button class="fab" id="add-group-btn">+</button>
+  </div>
+
+  <!-- Group Detail View -->
+  <div id="view-group" class="view">
+    <div class="tabs">
+      <button class="tab active" data-tab="expenses">Expenses</button>
+      <button class="tab" data-tab="balances">Balances</button>
+      <button class="tab" data-tab="members">Members</button>
+    </div>
+
+    <div id="tab-expenses">
+      <div id="expenses-list" class="loading">Loading expenses...</div>
+    </div>
+
+    <div id="tab-balances" style="display:none;">
+      <div id="your-balance" class="balance-bar"></div>
+      <h3 class="mb-1">Settle Up</h3>
+      <div id="debts-list"></div>
+    </div>
+
+    <div id="tab-members" style="display:none;">
+      <div id="members-list"></div>
+      <button class="btn btn-secondary mt-1" id="add-member-btn">+ Add Member</button>
+    </div>
+
+    <button class="fab" id="add-expense-btn">+</button>
+  </div>
+
+  <!-- Add Group Modal -->
+  <div id="modal-add-group" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title">New Group</h2>
+        <button class="modal-close" onclick="closeModal('modal-add-group')">×</button>
+      </div>
+      <form id="form-add-group">
+        <div class="form-group">
+          <label class="form-label">Group Name</label>
+          <input type="text" class="form-input" name="name" placeholder="e.g., Flat expenses" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Description (optional)</label>
+          <input type="text" class="form-input" name="description" placeholder="e.g., Monthly bills and groceries">
+        </div>
+        <button type="submit" class="btn">Create Group</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Add Member Modal -->
+  <div id="modal-add-member" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title">Add Member</h2>
+        <button class="modal-close" onclick="closeModal('modal-add-member')">×</button>
+      </div>
+      <form id="form-add-member">
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input type="email" class="form-input" name="email" placeholder="friend@example.com" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Nickname (optional)</label>
+          <input type="text" class="form-input" name="nickname" placeholder="e.g., Johnny">
+        </div>
+        <button type="submit" class="btn">Add Member</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Add Expense Modal -->
+  <div id="modal-add-expense" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title">Add Expense</h2>
+        <button class="modal-close" onclick="closeModal('modal-add-expense')">×</button>
+      </div>
+      <form id="form-add-expense">
+        <div class="form-group">
+          <label class="form-label">Description</label>
+          <input type="text" class="form-input" name="description" placeholder="e.g., Groceries" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Amount ($)</label>
+          <input type="number" class="form-input" name="amount" step="0.01" min="0.01" placeholder="0.00" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Paid by</label>
+          <select class="form-select" name="paid_by" id="expense-paid-by"></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Category</label>
+          <div class="category-grid" id="category-grid"></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Split</label>
+          <div class="split-options">
+            <button type="button" class="split-option active" data-split="equal">= Equal</button>
+            <button type="button" class="split-option" data-split="exact">$ Exact</button>
+          </div>
+          <div id="split-members" style="display:none;"></div>
+        </div>
+        <button type="submit" class="btn">Add Expense</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Settle Up Modal -->
+  <div id="modal-settle" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title">Settle Up</h2>
+        <button class="modal-close" onclick="closeModal('modal-settle')">×</button>
+      </div>
+      <form id="form-settle">
+        <p id="settle-description" class="mb-1"></p>
+        <div class="form-group">
+          <label class="form-label">Amount ($)</label>
+          <input type="number" class="form-input" name="amount" step="0.01" min="0.01" id="settle-amount" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Note (optional)</label>
+          <input type="text" class="form-input" name="note" placeholder="e.g., Bank transfer">
+        </div>
+        <input type="hidden" name="from_user" id="settle-from">
+        <input type="hidden" name="to_user" id="settle-to">
+        <button type="submit" class="btn">Record Payment</button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const API = '/splits/api';
+    let currentUser = null;
+    let currentGroup = null;
+    let groups = [];
+    let members = [];
+    let categories = [];
+    let selectedCategory = 1;
+    let splitType = 'equal';
+
+    // ============================================
+    // Utilities
+    // ============================================
+
+    function $(id) { return document.getElementById(id); }
+    function getName(email) { return email.split('@')[0]; }
+    function formatAmount(amount) { return '$' + Math.abs(amount).toFixed(2); }
+
+    function showView(viewId) {
+      document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+      $(viewId).classList.add('active');
+    }
+
+    function openModal(modalId) {
+      $(modalId).classList.add('active');
+    }
+
+    function closeModal(modalId) {
+      $(modalId).classList.remove('active');
+    }
+
+    // ============================================
+    // API Calls
+    // ============================================
+
+    async function api(path, options = {}) {
+      const res = await fetch(API + path, {
+        headers: { 'Content-Type': 'application/json', ...options.headers },
+        ...options
+      });
+      return res.json();
+    }
+
+    async function loadUser() {
+      const data = await fetch('/api/me').then(r => r.json());
+      currentUser = data;
+      return data;
+    }
+
+    async function loadCategories() {
+      const data = await api('/categories');
+      categories = data.categories;
+      renderCategories();
+    }
+
+    // ============================================
+    // Groups
+    // ============================================
+
+    async function loadGroups() {
+      $('groups-list').innerHTML = '<div class="loading">Loading...</div>';
+      const data = await api('/groups');
+      groups = data.groups;
+      renderGroups();
+    }
+
+    function renderGroups() {
+      if (groups.length === 0) {
+        $('groups-list').innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">💸</div>
+            <h3>No groups yet</h3>
+            <p>Create a group to start splitting expenses</p>
+          </div>
+        `;
+        return;
+      }
+
+      $('groups-list').innerHTML = groups.map(g => `
+        <div class="list-item" onclick="openGroup(${g.id})">
+          <div class="list-icon">👥</div>
+          <div class="list-content">
+            <div class="list-title">${g.name}</div>
+            <div class="list-subtitle">${g.member_count || 1} member${g.member_count !== 1 ? 's' : ''}</div>
+          </div>
+          <div class="list-amount">›</div>
+        </div>
+      `).join('');
+    }
+
+    async function createGroup(e) {
+      e.preventDefault();
+      const form = e.target;
+      const data = {
+        name: form.name.value,
+        description: form.description.value || undefined
+      };
+
+      await api('/groups', {
+        method: 'POST',
+        body: JSON.stringify(data)
+      });
+
+      form.reset();
+      closeModal('modal-add-group');
+      loadGroups();
+    }
+
+    // ============================================
+    // Group Detail
+    // ============================================
+
+    async function openGroup(groupId) {
+      showView('view-group');
+      $('back-btn').style.display = 'block';
+      $('header-action').style.display = 'none';
+
+      const data = await api(`/groups/${groupId}`);
+      currentGroup = data.group;
+      members = data.members;
+
+      $('header-title').textContent = currentGroup.name;
+
+      // Show expenses tab by default
+      switchTab('expenses');
+      loadExpenses();
+    }
+
+    function closeGroup() {
+      currentGroup = null;
+      showView('view-groups');
+      $('back-btn').style.display = 'none';
+      $('header-title').textContent = '💸 Splits';
+    }
+
+    function switchTab(tab) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelector(`.tab[data-tab="${tab}"]`).classList.add('active');
+
+      $('tab-expenses').style.display = tab === 'expenses' ? 'block' : 'none';
+      $('tab-balances').style.display = tab === 'balances' ? 'block' : 'none';
+      $('tab-members').style.display = tab === 'members' ? 'block' : 'none';
+      $('add-expense-btn').style.display = tab === 'expenses' ? 'block' : 'none';
+
+      if (tab === 'balances') loadBalances();
+      if (tab === 'members') renderMembers();
+    }
+
+    // ============================================
+    // Expenses
+    // ============================================
+
+    async function loadExpenses() {
+      $('expenses-list').innerHTML = '<div class="loading">Loading...</div>';
+      const data = await api(`/groups/${currentGroup.id}/expenses`);
+
+      if (data.expenses.length === 0) {
+        $('expenses-list').innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">🧾</div>
+            <h3>No expenses yet</h3>
+            <p>Tap + to add the first expense</p>
+          </div>
+        `;
+        return;
+      }
+
+      $('expenses-list').innerHTML = data.expenses.map(exp => {
+        const paidByMe = exp.paid_by === currentUser.id;
+        return `
+          <div class="list-item" onclick="viewExpense(${exp.id})">
+            <div class="list-icon">${exp.category_icon}</div>
+            <div class="list-content">
+              <div class="list-title">${exp.description}</div>
+              <div class="list-subtitle">${getName(exp.paid_by_email)} paid ${formatAmount(exp.amount)}</div>
+            </div>
+            <div class="list-amount ${paidByMe ? 'positive' : ''}">
+              ${formatAmount(exp.amount)}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function viewExpense(expenseId) {
+      // TODO: Expense detail view
+      alert('Expense detail coming soon!');
+    }
+
+    function openAddExpense() {
+      // Populate paid_by dropdown
+      $('expense-paid-by').innerHTML = members.map(m => `
+        <option value="${m.user_id}" ${m.user_id === currentUser.id ? 'selected' : ''}>
+          ${m.nickname || getName(m.user_email)}${m.user_id === currentUser.id ? ' (you)' : ''}
+        </option>
+      `).join('');
+
+      // Reset split type
+      splitType = 'equal';
+      document.querySelectorAll('.split-option').forEach(o => o.classList.remove('active'));
+      document.querySelector('.split-option[data-split="equal"]').classList.add('active');
+      $('split-members').style.display = 'none';
+
+      selectedCategory = 1;
+      renderCategories();
+      openModal('modal-add-expense');
+    }
+
+    function selectSplitType(type) {
+      splitType = type;
+      document.querySelectorAll('.split-option').forEach(o => o.classList.remove('active'));
+      document.querySelector(`.split-option[data-split="${type}"]`).classList.add('active');
+
+      if (type === 'exact') {
+        $('split-members').style.display = 'block';
+        $('split-members').innerHTML = `
+          <div class="member-chips">
+            ${members.map(m => `
+              <div class="member-chip">
+                <span>${m.nickname || getName(m.user_email)}</span>
+                <input type="number" step="0.01" min="0" data-user="${m.user_id}" placeholder="0.00">
+              </div>
+            `).join('')}
+          </div>
+        `;
+      } else {
+        $('split-members').style.display = 'none';
+      }
+    }
+
+    async function createExpense(e) {
+      e.preventDefault();
+      const form = e.target;
+
+      const data = {
+        description: form.description.value,
+        amount: parseFloat(form.amount.value),
+        paid_by: form.paid_by.value,
+        category_id: selectedCategory,
+        split_type: splitType
+      };
+
+      if (splitType === 'exact') {
+        data.splits = [];
+        $('split-members').querySelectorAll('input').forEach(input => {
+          const amount = parseFloat(input.value) || 0;
+          if (amount > 0) {
+            data.splits.push({ user_id: input.dataset.user, amount });
+          }
+        });
+      }
+
+      await api(`/groups/${currentGroup.id}/expenses`, {
+        method: 'POST',
+        body: JSON.stringify(data)
+      });
+
+      form.reset();
+      closeModal('modal-add-expense');
+      loadExpenses();
+    }
+
+    function renderCategories() {
+      $('category-grid').innerHTML = categories.map(cat => `
+        <div class="category-item ${cat.id === selectedCategory ? 'active' : ''}"
+             onclick="selectCategory(${cat.id})">
+          ${cat.icon}
+          <span>${cat.name}</span>
+        </div>
+      `).join('');
+    }
+
+    function selectCategory(id) {
+      selectedCategory = id;
+      renderCategories();
+    }
+
+    // ============================================
+    // Balances
+    // ============================================
+
+    async function loadBalances() {
+      const data = await api(`/groups/${currentGroup.id}/balances`);
+
+      // Find your balance
+      const myBalance = data.balances.find(b => b.user_id === currentUser.id);
+      const amount = myBalance?.balance || 0;
+
+      $('your-balance').innerHTML = `
+        <div>
+          <div class="balance-label">Your balance</div>
+          <div class="balance-amount ${amount >= 0 ? 'positive' : 'negative'}">
+            ${amount >= 0 ? '+' : '-'}${formatAmount(amount)}
+          </div>
+        </div>
+        <div style="flex:1;"></div>
+        <div class="balance-label">
+          ${amount > 0 ? 'You are owed' : amount < 0 ? 'You owe' : 'All settled up!'}
+        </div>
+      `;
+
+      // Render debts
+      if (data.debts.length === 0) {
+        $('debts-list').innerHTML = `
+          <div class="card text-center">
+            <p>✅ No debts to settle!</p>
+          </div>
+        `;
+        return;
+      }
+
+      $('debts-list').innerHTML = data.debts.map(d => `
+        <div class="debt-card">
+          <div class="debt-users">
+            <strong>${getName(d.from_email)}</strong>
+            <span style="color:#666;"> owes </span>
+            <strong>${getName(d.to_email)}</strong>
+          </div>
+          <div class="debt-amount">${formatAmount(d.amount)}</div>
+          <button class="btn btn-sm" onclick="openSettle('${d.from_user}', '${d.to_user}', '${d.from_email}', '${d.to_email}', ${d.amount})">
+            Settle
+          </button>
+        </div>
+      `).join('');
+    }
+
+    function openSettle(fromUser, toUser, fromEmail, toEmail, amount) {
+      $('settle-description').textContent = `${getName(fromEmail)} pays ${getName(toEmail)}`;
+      $('settle-amount').value = amount.toFixed(2);
+      $('settle-from').value = fromUser;
+      $('settle-to').value = toUser;
+      openModal('modal-settle');
+    }
+
+    async function createSettlement(e) {
+      e.preventDefault();
+      const form = e.target;
+
+      const data = {
+        from_user: form.from_user.value,
+        to_user: form.to_user.value,
+        amount: parseFloat(form.amount.value),
+        note: form.note.value || undefined
+      };
+
+      await api(`/groups/${currentGroup.id}/settlements`, {
+        method: 'POST',
+        body: JSON.stringify(data)
+      });
+
+      form.reset();
+      closeModal('modal-settle');
+      loadBalances();
+    }
+
+    // ============================================
+    // Members
+    // ============================================
+
+    function renderMembers() {
+      $('members-list').innerHTML = members.map(m => `
+        <div class="list-item">
+          <div class="list-icon">👤</div>
+          <div class="list-content">
+            <div class="list-title">${m.nickname || getName(m.user_email)}</div>
+            <div class="list-subtitle">${m.user_email}</div>
+          </div>
+          ${m.user_id === currentUser.id ? '<span style="color:#10B981;">You</span>' : ''}
+        </div>
+      `).join('');
+    }
+
+    async function addMember(e) {
+      e.preventDefault();
+      const form = e.target;
+
+      await api(`/groups/${currentGroup.id}/members`, {
+        method: 'POST',
+        body: JSON.stringify({
+          email: form.email.value,
+          nickname: form.nickname.value || undefined
+        })
+      });
+
+      form.reset();
+      closeModal('modal-add-member');
+
+      // Reload group to get updated members
+      const data = await api(`/groups/${currentGroup.id}`);
+      members = data.members;
+      renderMembers();
+    }
+
+    // ============================================
+    // Event Listeners
+    // ============================================
+
+    $('back-btn').addEventListener('click', closeGroup);
+    $('add-group-btn').addEventListener('click', () => openModal('modal-add-group'));
+    $('add-expense-btn').addEventListener('click', openAddExpense);
+    $('add-member-btn').addEventListener('click', () => openModal('modal-add-member'));
+
+    $('form-add-group').addEventListener('submit', createGroup);
+    $('form-add-expense').addEventListener('submit', createExpense);
+    $('form-add-member').addEventListener('submit', addMember);
+    $('form-settle').addEventListener('submit', createSettlement);
+
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => switchTab(tab.dataset.tab));
+    });
+
+    document.querySelectorAll('.split-option').forEach(opt => {
+      opt.addEventListener('click', () => selectSplitType(opt.dataset.split));
+    });
+
+    // Close modals on backdrop click
+    document.querySelectorAll('.modal').forEach(modal => {
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeModal(modal.id);
+      });
+    });
+
+    // ============================================
+    // Init
+    // ============================================
+
+    async function init() {
+      await loadUser();
+      await loadCategories();
+      await loadGroups();
+    }
+
+    init();
+  </script>
+</body>
+</html>
