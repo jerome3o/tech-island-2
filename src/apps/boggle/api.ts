@@ -359,15 +359,21 @@ app.get('/api/games/:id/state', async (c) => {
         const winner = playersArray[0];
         const winnerName = winner.alias || winner.email?.split('@')[0] || 'Unknown';
 
-        // Build player scores list
+        // Build detailed player scores list
         const playerScores = playersArray
-          .map((p: any) => {
+          .map((p: any, index: number) => {
             const name = p.alias || p.email?.split('@')[0] || 'Unknown';
-            return `${name}: ${p.score}`;
+            const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '  ';
+            return `${medal} ${name}: ${p.score} pts`;
           })
-          .join(', ');
+          .join('\n');
 
-        const message = `Game finished!\n\nWinner: ${winnerName} (${winner.score} points)\n\nPlayers: ${playerScores}`;
+        const playerCount = playersArray.length;
+        const totalPoints = playersArray.reduce((sum: number, p: any) => sum + (p.score || 0), 0);
+
+        const message = `🏆 ${winnerName} wins with ${winner.score} points!\n\n` +
+                       `📊 Final Scores (${playerCount} player${playerCount !== 1 ? 's' : ''}):\n${playerScores}\n\n` +
+                       `🎯 Total points scored: ${totalPoints}`;
 
         // Send notification (non-blocking)
         sendNtfyNotification(c.env, {
