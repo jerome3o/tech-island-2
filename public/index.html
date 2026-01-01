@@ -75,7 +75,7 @@
       justify-content: center;
       font-size: 1.5rem;
       cursor: pointer;
-      transition: transform 0.2s;
+      transition: transform 0.2s, opacity 0.3s;
       object-fit: cover;
     }
 
@@ -88,26 +88,6 @@
       height: 100%;
       border-radius: 50%;
       object-fit: cover;
-    }
-
-    .user-details {
-      flex: 1;
-    }
-
-    .profile-link {
-      background: rgba(255, 255, 255, 0.3);
-      color: white;
-      text-decoration: none;
-      padding: 0.5rem 1rem;
-      border-radius: 8px;
-      font-size: 0.9rem;
-      font-weight: 600;
-      transition: background 0.2s;
-      white-space: nowrap;
-    }
-
-    .profile-link:hover {
-      background: rgba(255, 255, 255, 0.4);
     }
 
     .user-details {
@@ -346,13 +326,12 @@
     </header>
 
     <div id="user-info" class="user-info" style="display: none;">
-      <div class="user-avatar" id="user-avatar" onclick="window.location.href='/bebo'">👤</div>
-      <div class="user-details">
+      <div class="user-avatar" id="user-avatar" onclick="window.location.href='/bebo'" style="opacity: 0;"></div>
+      <div class="user-details" onclick="window.location.href='/bebo'" style="cursor: pointer;">
         <strong id="user-name">Loading...</strong>
         <div id="user-email" style="opacity: 0.8; font-size: 0.9rem;"></div>
       </div>
-      <button class="edit-name-btn" id="edit-name-btn">✏️ Edit</button>
-      <a href="/bebo" class="profile-link">My Profile</a>
+      <button class="edit-name-btn" id="edit-name-btn">Change Name</button>
     </div>
 
     <div id="apps-container" class="loading">
@@ -417,16 +396,32 @@
               const avatarEl = document.getElementById('user-avatar');
 
               if (beboProfile.profile_pic_key) {
-                avatarEl.innerHTML = `<img src="/bebo/images/${beboProfile.profile_pic_key}" alt="Profile">`;
+                const img = document.createElement('img');
+                img.src = `/bebo/images/${beboProfile.profile_pic_key}`;
+                img.alt = 'Profile';
+                img.onload = () => {
+                  avatarEl.innerHTML = '';
+                  avatarEl.appendChild(img);
+                  avatarEl.style.opacity = '1';
+                };
+                img.onerror = () => {
+                  avatarEl.textContent = currentUser.name[0].toUpperCase();
+                  avatarEl.style.opacity = '1';
+                };
               } else {
                 avatarEl.textContent = currentUser.name[0].toUpperCase();
+                avatarEl.style.opacity = '1';
               }
             } else {
-              document.getElementById('user-avatar').textContent = currentUser.name[0].toUpperCase();
+              const avatarEl = document.getElementById('user-avatar');
+              avatarEl.textContent = currentUser.name[0].toUpperCase();
+              avatarEl.style.opacity = '1';
             }
           } catch (beboError) {
             console.error('Failed to load Bebo profile:', beboError);
-            document.getElementById('user-avatar').textContent = currentUser.name[0].toUpperCase();
+            const avatarEl = document.getElementById('user-avatar');
+            avatarEl.textContent = currentUser.name[0].toUpperCase();
+            avatarEl.style.opacity = '1';
           }
         }
       } catch (error) {
