@@ -216,6 +216,88 @@
       font-family: 'Courier New', monospace;
       font-size: 0.85rem;
     }
+
+    .debug-log {
+      margin-top: 1rem;
+      border: 1px solid #D1D5DB;
+      border-radius: 8px;
+      background: #1F2937;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    .debug-log-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.5rem 0.75rem;
+      background: #374151;
+      border-bottom: 1px solid #4B5563;
+      border-radius: 8px 8px 0 0;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+
+    .debug-log-title {
+      color: #F9FAFB;
+      font-weight: 600;
+      font-size: 0.85rem;
+    }
+
+    .debug-log-clear {
+      background: #DC2626;
+      color: white;
+      border: none;
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      cursor: pointer;
+    }
+
+    .debug-log-clear:hover {
+      background: #B91C1C;
+    }
+
+    .debug-log-content {
+      padding: 0.5rem;
+      font-family: 'Courier New', monospace;
+      font-size: 0.75rem;
+      color: #E5E7EB;
+    }
+
+    .log-entry {
+      padding: 0.25rem 0.5rem;
+      margin-bottom: 0.25rem;
+      border-radius: 4px;
+      word-wrap: break-word;
+    }
+
+    .log-entry.info {
+      background: #1E3A8A;
+      color: #BFDBFE;
+    }
+
+    .log-entry.success {
+      background: #065F46;
+      color: #A7F3D0;
+    }
+
+    .log-entry.error {
+      background: #7F1D1D;
+      color: #FCA5A5;
+    }
+
+    .log-entry.warning {
+      background: #78350F;
+      color: #FCD34D;
+    }
+
+    .log-timestamp {
+      opacity: 0.6;
+      font-size: 0.7rem;
+      margin-right: 0.5rem;
+    }
   </style>
 </head>
 <body>
@@ -306,7 +388,17 @@
         2. Request permission if needed<br>
         3. Subscribe to push notifications<br>
         4. Test local and push notifications<br>
-        5. Check console for detailed logs
+        5. Check debug log below for detailed information
+      </div>
+
+      <div class="debug-log">
+        <div class="debug-log-header">
+          <span class="debug-log-title">📋 Debug Log</span>
+          <button class="debug-log-clear" id="clear-log-btn">Clear</button>
+        </div>
+        <div class="debug-log-content" id="debug-log-content">
+          <div class="log-entry info">Debug log initialized. Actions will appear here.</div>
+        </div>
       </div>
     </div>
   </div>
@@ -394,6 +486,31 @@
     // Notification Debugging
     // ============================================
 
+    // Debug log viewer
+    function addDebugLog(message, type = 'info') {
+      const logContent = document.getElementById('debug-log-content');
+      const timestamp = new Date().toLocaleTimeString();
+
+      const logEntry = document.createElement('div');
+      logEntry.className = `log-entry ${type}`;
+      logEntry.innerHTML = `<span class="log-timestamp">${timestamp}</span>${message}`;
+
+      logContent.appendChild(logEntry);
+
+      // Auto-scroll to bottom
+      logContent.parentElement.scrollTop = logContent.parentElement.scrollHeight;
+
+      // Also log to console for debugging
+      const consoleMethod = type === 'error' ? console.error : console.log;
+      consoleMethod(`[${timestamp}] ${message}`);
+    }
+
+    // Clear log button
+    document.getElementById('clear-log-btn').addEventListener('click', () => {
+      const logContent = document.getElementById('debug-log-content');
+      logContent.innerHTML = '<div class="log-entry info">Debug log cleared.</div>';
+    });
+
     function urlBase64ToUint8Array(base64String) {
       const padding = '='.repeat((4 - base64String.length % 4) % 4);
       const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
@@ -416,16 +533,18 @@
     }
 
     async function checkNotificationStatus() {
-      console.log('Checking notification status...');
+      addDebugLog('🔍 Checking notification status...', 'info');
 
       // Check browser support
       const browserSupport = document.getElementById('browser-support');
       if ('Notification' in window && 'serviceWorker' in navigator && 'PushManager' in window) {
         browserSupport.textContent = 'Supported';
         browserSupport.className = 'status-value success';
+        addDebugLog('✅ Browser supports notifications', 'success');
       } else {
         browserSupport.textContent = 'Not Supported';
         browserSupport.className = 'status-value error';
+        addDebugLog('❌ Browser does not support notifications', 'error');
         return;
       }
 
@@ -436,7 +555,14 @@
       permissionStatus.className = permission === 'granted' ? 'status-value success' :
                                      permission === 'denied' ? 'status-value error' :
                                      'status-value warning';
-      console.log('Permission:', permission);
+
+      if (permission === 'granted') {
+        addDebugLog('✅ Permission: granted', 'success');
+      } else if (permission === 'denied') {
+        addDebugLog('❌ Permission: denied', 'error');
+      } else {
+        addDebugLog('⚠️ Permission: not requested yet', 'warning');
+      }
 
       // Check service worker status
       const swStatus = document.getElementById('sw-status');
@@ -445,13 +571,18 @@
         if (registration) {
           swStatus.textContent = registration.active ? 'Active' : 'Installing';
           swStatus.className = registration.active ? 'status-value success' : 'status-value warning';
-          console.log('Service Worker:', registration);
+          if (registration.active) {
+            addDebugLog('✅ Service Worker is active', 'success');
+          } else {
+            addDebugLog('⚠️ Service Worker is installing...', 'warning');
+          }
         } else {
           swStatus.textContent = 'Not Registered';
           swStatus.className = 'status-value error';
+          addDebugLog('❌ Service Worker not registered', 'error');
         }
       } catch (error) {
-        console.error('Service worker check failed:', error);
+        addDebugLog(`❌ Service Worker check failed: ${error.message}`, 'error');
         swStatus.textContent = 'Error';
         swStatus.className = 'status-value error';
       }
@@ -461,17 +592,19 @@
       try {
         const response = await fetch(`${API_BASE}/notifications/status`);
         const data = await response.json();
-        console.log('Subscription status:', data);
 
         if (data.hasSubscription) {
           subscriptionStatus.textContent = 'Subscribed';
           subscriptionStatus.className = 'status-value success';
+          addDebugLog('✅ Push subscription active', 'success');
+          addDebugLog(`Endpoint: ${data.subscription.endpoint.substring(0, 50)}...`, 'info');
         } else {
           subscriptionStatus.textContent = 'Not Subscribed';
           subscriptionStatus.className = 'status-value warning';
+          addDebugLog('⚠️ No push subscription found', 'warning');
         }
       } catch (error) {
-        console.error('Failed to check subscription status:', error);
+        addDebugLog(`❌ Failed to check subscription: ${error.message}`, 'error');
         subscriptionStatus.textContent = 'Error';
         subscriptionStatus.className = 'status-value error';
       }
@@ -479,14 +612,14 @@
 
     // Request permission
     document.getElementById('request-permission-btn').addEventListener('click', async () => {
-      console.log('Requesting notification permission...');
+      addDebugLog('📢 Requesting notification permission...', 'info');
       try {
         const permission = await Notification.requestPermission();
-        console.log('Permission result:', permission);
+        addDebugLog(`Permission result: ${permission}`, permission === 'granted' ? 'success' : 'warning');
         showNotificationResult(`Permission ${permission}`, permission === 'granted');
         await checkNotificationStatus();
       } catch (error) {
-        console.error('Permission request failed:', error);
+        addDebugLog(`❌ Permission request failed: ${error.message}`, 'error');
         showNotificationResult('Failed to request permission: ' + error.message, false);
       }
     });
@@ -498,29 +631,34 @@
       btn.textContent = 'Subscribing...';
 
       try {
-        console.log('Subscribing to push notifications...');
+        addDebugLog('🔔 Starting push subscription...', 'info');
 
         if (Notification.permission !== 'granted') {
+          addDebugLog('❌ Permission not granted', 'error');
           showNotificationResult('Please grant notification permission first', false);
           return;
         }
 
+        addDebugLog('⏳ Waiting for service worker...', 'info');
         const registration = await navigator.serviceWorker.ready;
-        console.log('Service worker ready:', registration);
+        addDebugLog('✅ Service worker ready', 'success');
 
         // Get VAPID public key
+        addDebugLog('🔑 Fetching VAPID public key...', 'info');
         const vapidResponse = await fetch('/api/push/vapid-key');
         const { publicKey } = await vapidResponse.json();
-        console.log('VAPID public key:', publicKey);
+        addDebugLog(`✅ Got VAPID key: ${publicKey.substring(0, 20)}...`, 'success');
 
         // Subscribe
+        addDebugLog('📝 Creating push subscription...', 'info');
         const subscription = await registration.pushManager.subscribe({
           userVisibleOnly: true,
           applicationServerKey: urlBase64ToUint8Array(publicKey)
         });
-        console.log('Push subscription:', subscription);
+        addDebugLog('✅ Push subscription created', 'success');
 
         // Send to server
+        addDebugLog('💾 Saving subscription to server...', 'info');
         const response = await fetch(`${API_BASE}/notifications/subscribe`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -528,12 +666,12 @@
         });
 
         const data = await response.json();
-        console.log('Subscription saved:', data);
+        addDebugLog('✅ Subscription saved successfully!', 'success');
 
         showNotificationResult(data.message || 'Successfully subscribed!', true);
         await checkNotificationStatus();
       } catch (error) {
-        console.error('Subscription failed:', error);
+        addDebugLog(`❌ Subscription failed: ${error.message}`, 'error');
         showNotificationResult('Failed to subscribe: ' + error.message, false);
       } finally {
         btn.disabled = false;
@@ -543,8 +681,9 @@
 
     // Test local notification
     document.getElementById('test-local-btn').addEventListener('click', () => {
-      console.log('Testing local notification...');
+      addDebugLog('🔔 Testing local notification...', 'info');
       if (Notification.permission !== 'granted') {
+        addDebugLog('❌ Permission not granted', 'error');
         showNotificationResult('Please grant notification permission first', false);
         return;
       }
@@ -557,11 +696,12 @@
       });
 
       notification.onclick = () => {
-        console.log('Notification clicked');
+        addDebugLog('👆 Notification clicked', 'info');
         window.focus();
         notification.close();
       };
 
+      addDebugLog('✅ Local notification sent!', 'success');
       showNotificationResult('Local notification sent!', true);
     });
 
@@ -572,17 +712,23 @@
       btn.textContent = 'Sending...';
 
       try {
-        console.log('Testing push notification...');
+        addDebugLog('📤 Sending test push notification...', 'info');
         const response = await fetch(`${API_BASE}/notifications/test`, {
           method: 'POST'
         });
 
         const data = await response.json();
-        console.log('Push test result:', data);
+
+        if (data.success) {
+          addDebugLog('✅ Push notification sent successfully!', 'success');
+          addDebugLog('Check your device for the notification', 'info');
+        } else {
+          addDebugLog(`❌ ${data.error || data.message}`, 'error');
+        }
 
         showNotificationResult(data.message, data.success);
       } catch (error) {
-        console.error('Push test failed:', error);
+        addDebugLog(`❌ Push test failed: ${error.message}`, 'error');
         showNotificationResult('Failed to send push notification: ' + error.message, false);
       } finally {
         btn.disabled = false;
@@ -597,28 +743,31 @@
       btn.textContent = 'Unsubscribing...';
 
       try {
-        console.log('Unsubscribing from push notifications...');
+        addDebugLog('🔕 Unsubscribing from push notifications...', 'info');
 
         // Unsubscribe from push manager
         const registration = await navigator.serviceWorker.ready;
         const subscription = await registration.pushManager.getSubscription();
         if (subscription) {
           await subscription.unsubscribe();
-          console.log('Unsubscribed from push manager');
+          addDebugLog('✅ Unsubscribed from push manager', 'success');
+        } else {
+          addDebugLog('⚠️ No active subscription found in browser', 'warning');
         }
 
         // Remove from server
+        addDebugLog('🗑️ Removing subscription from server...', 'info');
         const response = await fetch(`${API_BASE}/notifications/subscribe`, {
           method: 'DELETE'
         });
 
         const data = await response.json();
-        console.log('Subscription removed from server:', data);
+        addDebugLog('✅ Subscription removed from server', 'success');
 
         showNotificationResult(data.message || 'Successfully unsubscribed!', true);
         await checkNotificationStatus();
       } catch (error) {
-        console.error('Unsubscribe failed:', error);
+        addDebugLog(`❌ Unsubscribe failed: ${error.message}`, 'error');
         showNotificationResult('Failed to unsubscribe: ' + error.message, false);
       } finally {
         btn.disabled = false;
@@ -628,6 +777,7 @@
 
     // Refresh status
     document.getElementById('refresh-status-btn').addEventListener('click', async () => {
+      addDebugLog('🔄 Refreshing status...', 'info');
       await checkNotificationStatus();
       showNotificationResult('Status refreshed', true);
     });
