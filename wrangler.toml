@@ -5,11 +5,10 @@ compatibility_date = "2024-12-01"
 # Static assets served from /public
 assets = { directory = "public" }
 
-# D1 Database binding - uncomment after running Initial Setup workflow
-# [[d1_databases]]
-# binding = "DB"
-# database_name = "towerhouse-db"
-# database_id = ""  # Get this from: wrangler d1 list
+[[d1_databases]]
+binding = "DB"
+database_name = "towerhouse-db"
+database_id = "593c5030-9c5e-4b2f-b7fb-eca50b232dbb"
 migrations_dir = "migrations"
 
 # Environment variables (secrets set via wrangler secret)
