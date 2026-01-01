@@ -765,11 +765,29 @@
 
         if (data.success) {
           addDebugLog('✅ Push notification sent successfully!', 'success');
+          addDebugLog(`HTTP ${data.statusCode}: ${data.statusText}`, 'success');
           addDebugLog('Check your device for the notification', 'info');
         } else {
           addDebugLog(`❌ ${data.error || data.message}`, 'error');
+
+          // Show HTTP status if available
+          if (data.statusCode) {
+            addDebugLog(`HTTP Status: ${data.statusCode} ${data.statusText || ''}`, 'error');
+          }
+
+          // Show error body from push service
+          if (data.errorBody) {
+            addDebugLog(`Push service error: ${data.errorBody}`, 'error');
+          }
+
+          // Show error message from exception
+          if (data.errorMessage) {
+            addDebugLog(`Error message: ${data.errorMessage}`, 'error');
+          }
+
+          // Show stack trace if available
           if (data.details) {
-            addDebugLog(`Details: ${data.details}`, 'error');
+            addDebugLog(`Stack trace: ${data.details}`, 'error');
           }
         }
 

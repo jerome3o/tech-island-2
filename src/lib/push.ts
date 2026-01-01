@@ -272,6 +272,14 @@ async function encryptPayload(
   };
 }
 
+export interface PushResult {
+  success: boolean;
+  statusCode?: number;
+  statusText?: string;
+  errorBody?: string;
+  errorMessage?: string;
+}
+
 /**
  * Send a push notification using the Web Push protocol.
  */
@@ -279,7 +287,7 @@ export async function sendPushNotification(
   env: Env,
   subscription: PushSubscription,
   payload: NotificationPayload
-): Promise<boolean> {
+): Promise<PushResult> {
   try {
     console.log('=== Push Notification Debug ===');
     console.log('Endpoint:', subscription.endpoint);
@@ -336,18 +344,35 @@ export async function sendPushNotification(
       console.error('Status text:', response.statusText);
       console.error('Error body:', errorText);
       console.error('Response headers:', JSON.stringify([...response.headers.entries()]));
-      return false;
+
+      return {
+        success: false,
+        statusCode: response.status,
+        statusText: response.statusText,
+        errorBody: errorText
+      };
     }
 
     console.log('✅ Push notification sent successfully!');
-    return true;
+    return {
+      success: true,
+      statusCode: response.status,
+      statusText: response.statusText
+    };
   } catch (error) {
     console.error('Failed to send push notification - exception thrown:', error);
     if (error instanceof Error) {
       console.error('Error message:', error.message);
       console.error('Error stack:', error.stack);
+      return {
+        success: false,
+        errorMessage: error.message
+      };
     }
-    return false;
+    return {
+      success: false,
+      errorMessage: 'Unknown error occurred'
+    };
   }
 }
 
