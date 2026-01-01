@@ -61,28 +61,55 @@ self.addEventListener('fetch', (event) => {
 
 // Push notification event
 self.addEventListener('push', (event) => {
-  if (!event.data) return;
+  console.log('[SW] Push event received', event);
 
-  const data = event.data.json();
+  if (!event.data) {
+    console.error('[SW] Push event has no data');
+    return;
+  }
 
-  const options = {
-    body: data.body,
-    icon: data.icon || '/icons/icon-192.png',
-    badge: data.badge || '/icons/icon-192.png',
-    tag: data.tag || 'default',
-    data: {
-      url: data.url || '/'
-    },
-    vibrate: [100, 50, 100],
-    actions: [
-      { action: 'open', title: 'Open' },
-      { action: 'dismiss', title: 'Dismiss' }
-    ]
-  };
+  try {
+    // Log raw data for debugging
+    console.log('[SW] Raw push data:', event.data.text());
 
-  event.waitUntil(
-    self.registration.showNotification(data.title, options)
-  );
+    const data = event.data.json();
+    console.log('[SW] Parsed push data:', data);
+
+    const options = {
+      body: data.body,
+      icon: data.icon || '/icons/icon-192.png',
+      badge: data.badge || '/icons/icon-192.png',
+      tag: data.tag || 'default',
+      data: {
+        url: data.url || '/'
+      },
+      vibrate: [100, 50, 100],
+      actions: [
+        { action: 'open', title: 'Open' },
+        { action: 'dismiss', title: 'Dismiss' }
+      ]
+    };
+
+    console.log('[SW] Showing notification with options:', options);
+
+    event.waitUntil(
+      self.registration.showNotification(data.title, options)
+        .then(() => console.log('[SW] Notification shown successfully'))
+        .catch(err => console.error('[SW] Failed to show notification:', err))
+    );
+  } catch (error) {
+    console.error('[SW] Error processing push event:', error);
+    console.error('[SW] Error stack:', error.stack);
+
+    // Show a fallback notification so we know the push was received
+    event.waitUntil(
+      self.registration.showNotification('Push Notification Error', {
+        body: 'Received push but failed to parse: ' + error.message,
+        icon: '/icons/icon-192.png',
+        tag: 'error'
+      })
+    );
+  }
 });
 
 // Notification click event
