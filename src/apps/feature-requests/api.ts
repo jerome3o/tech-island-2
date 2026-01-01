@@ -17,9 +17,12 @@ app.get('/api/requests', async (c) => {
       fr.icon,
       fr.description,
       fr.created_at,
+      u.alias as creator_alias,
+      u.email as creator_email,
       GROUP_CONCAT(DISTINCT frr.emoji) as all_reactions,
       GROUP_CONCAT(DISTINCT CASE WHEN frr.user_id = ? THEN frr.emoji END) as user_reactions
     FROM feature_requests fr
+    LEFT JOIN users u ON fr.user_id = u.id
     LEFT JOIN feature_request_reactions frr ON fr.id = frr.feature_request_id
     GROUP BY fr.id
     ORDER BY fr.created_at DESC
@@ -38,9 +41,13 @@ app.get('/api/requests', async (c) => {
       }
     });
 
+    // Get creator name - prefer alias, fallback to email local part
+    const creatorName = req.creator_alias || (req.creator_email ? req.creator_email.split('@')[0] : 'Unknown');
+
     return {
       id: req.id,
       user_id: req.user_id,
+      creator_name: creatorName,
       title: req.title,
       icon: req.icon,
       description: req.description,

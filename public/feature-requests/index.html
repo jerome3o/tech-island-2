@@ -552,7 +552,7 @@
                 <div class="request-title">
                   <h3>${escapeHtml(req.title)}</h3>
                   <div class="request-meta">
-                    Submitted ${new Date(req.created_at * 1000).toLocaleDateString()}
+                    Submitted by ${escapeHtml(req.creator_name)} • ${new Date(req.created_at * 1000).toLocaleDateString()}
                   </div>
                 </div>
               </div>
