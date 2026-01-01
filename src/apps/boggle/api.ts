@@ -282,15 +282,18 @@ app.get('/api/games/:id/state', async (c) => {
   const now = Date.now();
   const timeUp = game.start_time && (now - (game.start_time as number)) >= ((game.timer_seconds as number) * 1000);
 
-  if (game.state === 'finished' || timeUp) {
-    // Auto-finish game if time's up
-    if (timeUp && game.state === 'playing') {
-      await db.prepare(`
-        UPDATE boggle_games SET state = 'finished' WHERE id = ?
-      `).bind(gameId).run();
-      game.state = 'finished';
-    }
+  // Check if we need to finish the game and calculate scores
+  const needsScoring = timeUp && game.state === 'playing';
 
+  if (needsScoring) {
+    // Mark game as finished first to prevent race conditions
+    await db.prepare(`
+      UPDATE boggle_games SET state = 'finished' WHERE id = ? AND state = 'playing'
+    `).bind(gameId).run();
+    game.state = 'finished';
+  }
+
+  if (game.state === 'finished') {
     // Get all words found
     const wordsResult = await db.prepare(`
       SELECT word, user_id, points
@@ -299,21 +302,67 @@ app.get('/api/games/:id/state', async (c) => {
       ORDER BY submitted_at ASC
     `).bind(gameId).all();
 
-    // Calculate final scores (remove points for duplicate words)
+    // Only recalculate scores if we just finished (to avoid doing this on every poll)
+    if (needsScoring) {
+      // Calculate final scores (remove points for duplicate words)
+      const wordCounts = new Map<string, number>();
+      for (const w of wordsResult.results as any[]) {
+        wordCounts.set(w.word, (wordCounts.get(w.word) || 0) + 1);
+      }
+
+      // Build final scores for all players (initialize with 0)
+      const finalScores = new Map<string, number>();
+
+      // Initialize all players to 0
+      for (const p of players.results as any[]) {
+        finalScores.set(p.user_id, 0);
+      }
+
+      // Add points for non-duplicate words
+      for (const w of wordsResult.results as any[]) {
+        const isDuplicate = wordCounts.get(w.word)! > 1;
+        if (!isDuplicate) {
+          const currentScore = finalScores.get(w.user_id) || 0;
+          finalScores.set(w.user_id, currentScore + (w.points as number));
+        }
+      }
+
+      // Update all player scores in database (batch update for efficiency)
+      const updatePromises = [];
+      for (const [userId, score] of finalScores) {
+        updatePromises.push(
+          db.prepare(`
+            UPDATE boggle_players SET score = ? WHERE game_id = ? AND user_id = ?
+          `).bind(score, gameId, userId).run()
+        );
+      }
+      await Promise.all(updatePromises);
+
+      // Refresh players data after updating scores
+      const updatedPlayers = await db.prepare(`
+        SELECT
+          p.user_id,
+          p.score,
+          u.alias,
+          u.email
+        FROM boggle_players p
+        LEFT JOIN users u ON p.user_id = u.id
+        WHERE p.game_id = ?
+        ORDER BY p.score DESC, p.joined_at ASC
+      `).bind(gameId).all();
+      players.results = updatedPlayers.results;
+    }
+
+    // Build words list for display (always show, even on subsequent polls)
     const wordCounts = new Map<string, number>();
     for (const w of wordsResult.results as any[]) {
       wordCounts.set(w.word, (wordCounts.get(w.word) || 0) + 1);
     }
 
-    // Build word list and recalculate scores
-    const finalScores = new Map<string, number>();
     const wordsByUser = new Map<string, any[]>();
-
     for (const w of wordsResult.results as any[]) {
       const isDuplicate = wordCounts.get(w.word)! > 1;
-      const actualPoints = isDuplicate ? 0 : w.points;
-
-      finalScores.set(w.user_id, (finalScores.get(w.user_id) || 0) + actualPoints);
+      const actualPoints = isDuplicate ? 0 : (w.points as number);
 
       if (!wordsByUser.has(w.user_id)) {
         wordsByUser.set(w.user_id, []);
@@ -326,18 +375,14 @@ app.get('/api/games/:id/state', async (c) => {
       });
     }
 
-    // Update final scores in database
-    for (const [userId, score] of finalScores) {
-      await db.prepare(`
-        UPDATE boggle_players SET score = ? WHERE game_id = ? AND user_id = ?
-      `).bind(score, gameId, userId).run();
-    }
-
-    allWords = Array.from(wordsByUser.entries()).map(([userId, words]) => ({
-      userId,
-      words,
-      finalScore: finalScores.get(userId) || 0
-    }));
+    allWords = Array.from(wordsByUser.entries()).map(([userId, words]) => {
+      const player = (players.results as any[]).find(p => p.user_id === userId);
+      return {
+        userId,
+        words,
+        finalScore: player?.score || 0
+      };
+    });
   }
 
   return c.json({
