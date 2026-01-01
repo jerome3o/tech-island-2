@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4F46E5;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#06B6D4;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="island" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#10B981;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#34D399;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="512" height="512" rx="115" fill="url(#bg)"/>
+
+  <!-- Waves/Ocean -->
+  <path d="M 0 320 Q 128 300 256 320 T 512 320 L 512 512 L 0 512 Z" fill="#3B82F6" opacity="0.3"/>
+  <path d="M 0 340 Q 128 320 256 340 T 512 340 L 512 512 L 0 512 Z" fill="#3B82F6" opacity="0.4"/>
+
+  <!-- Island -->
+  <ellipse cx="256" cy="300" rx="120" ry="40" fill="url(#island)"/>
+
+  <!-- Palm tree trunk -->
+  <rect x="246" y="240" width="20" height="60" rx="3" fill="#92400E"/>
+
+  <!-- Palm leaves -->
+  <path d="M 256 240 Q 220 220 200 200" stroke="#10B981" stroke-width="8" fill="none" stroke-linecap="round"/>
+  <path d="M 256 240 Q 240 210 235 180" stroke="#10B981" stroke-width="8" fill="none" stroke-linecap="round"/>
+  <path d="M 256 240 Q 270 210 277 180" stroke="#10B981" stroke-width="8" fill="none" stroke-linecap="round"/>
+  <path d="M 256 240 Q 292 220 312 200" stroke="#10B981" stroke-width="8" fill="none" stroke-linecap="round"/>
+
+  <!-- Tech element - circuit dots -->
+  <circle cx="180" cy="280" r="4" fill="#FCD34D"/>
+  <circle cx="200" cy="270" r="4" fill="#FCD34D"/>
+  <circle cx="312" cy="270" r="4" fill="#FCD34D"/>
+  <circle cx="332" cy="280" r="4" fill="#FCD34D"/>
+
+  <!-- Tech element - connecting lines -->
+  <line x1="180" y1="280" x2="200" y2="270" stroke="#FCD34D" stroke-width="2"/>
+  <line x1="312" y1="270" x2="332" y2="280" stroke="#FCD34D" stroke-width="2"/>
+</svg>
