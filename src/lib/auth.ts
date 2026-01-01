@@ -1,5 +1,6 @@
 import type { Context, Next } from 'hono';
 import type { AppContext, User } from '../types';
+import { ensureUserHasDisplayName } from './displayNames';
 
 /**
  * Middleware to extract user information from Cloudflare Access JWT.
@@ -28,10 +29,13 @@ export async function authMiddleware(c: Context<AppContext>, next: Next) {
   // Create a stable user ID from the email
   const id = await hashEmail(email);
 
+  // Ensure user exists in DB and has a display name
+  const displayName = await ensureUserHasDisplayName(c.env.DB, id, email);
+
   const user: User = {
     id,
     email,
-    name: email.split('@')[0]
+    name: displayName
   };
 
   c.set('user', user);

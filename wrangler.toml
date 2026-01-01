@@ -19,6 +19,10 @@ migrations_dir = "migrations"
 binding = "IMAGES"
 bucket_name = "tech-island-2-images"
 
+[[r2_buckets]]
+binding = "FLASHCARD_AUDIO"
+bucket_name = "tech-island-2-flashcard-audio"
+
 [vars]
 # APP_URL set via GitHub secret -> wrangler
 

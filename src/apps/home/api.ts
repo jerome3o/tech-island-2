@@ -7,6 +7,27 @@ const app = new Hono<AppContext>();
 app.get('/api/apps', (c) => {
   const apps = [
     {
+      id: 'hot-takes',
+      name: 'Hot Takes',
+      description: 'Share controversial opinions and argue in the comments',
+      path: '/hot-takes',
+      icon: '🔥'
+    },
+    {
+      id: 'flashcards',
+      name: 'Chinese Flashcards',
+      description: 'Learn Chinese with spaced repetition',
+      path: '/flashcards',
+      icon: '🀄'
+    },
+    {
+      id: 'feature-requests',
+      name: 'Feature Requests',
+      description: 'Share ideas and vote on new features',
+      path: '/feature-requests',
+      icon: '💡'
+    },
+    {
       id: 'bebo',
       name: 'Bebo',
       description: 'Social profiles, wall posts, and daily luvs',
