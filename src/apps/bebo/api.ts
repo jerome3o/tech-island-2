@@ -1,3 +1,87 @@
+/**
+ * Bebo - Social Network Profile System
+ *
+ * Bebo is the canonical profile system for Tech Island. It provides user profiles,
+ * social features, and serves as the de facto identity system across all apps.
+ *
+ * ## Key Concepts
+ *
+ * ### Profile System
+ * - **Profile Pictures & Cover Photos**: Stored in Cloudflare R2 (`tech-island-2-images` bucket)
+ * - **Profile Visibility**: Profiles are hidden by default (`hidden = 1`)
+ *   - Automatically shown when user adds bio, profile pic, or cover photo
+ *   - Users can manually toggle visibility
+ * - **Luvs**: Daily social currency (users can give 3 luvs per day to different people)
+ * - **Wall Posts**: Users can post messages on each other's walls
+ *
+ * ### Database Schema
+ *
+ * **bebo_profiles**
+ * - `user_id` (PK): References users.id
+ * - `bio`: User biography text
+ * - `profile_pic_key`: R2 key for profile picture
+ * - `cover_photo_key`: R2 key for cover photo
+ * - `luv_count`: Total luvs received (incremented when receiving luvs)
+ * - `hidden`: 0 = visible in directory, 1 = hidden
+ * - `created_at`, `updated_at`: Timestamps
+ *
+ * **bebo_wall_posts**
+ * - `id` (PK): UUID
+ * - `wall_owner_id`: User whose wall this is posted on
+ * - `author_id`: User who wrote the post
+ * - `content`: Post text content
+ * - `created_at`: Timestamp
+ *
+ * **bebo_luvs**
+ * - `id` (PK): UUID
+ * - `from_user_id`: User giving the luv
+ * - `to_user_id`: User receiving the luv
+ * - `given_at`: Timestamp
+ * - `day`: Date string (YYYY-MM-DD) for daily limit tracking
+ * - UNIQUE constraint on (from_user_id, to_user_id, day) - prevents duplicate luvs
+ *
+ * ### Image Storage (R2)
+ *
+ * Images are stored in Cloudflare R2 with keys like: `{user_id}/{timestamp}.{extension}`
+ * - Served through authenticated routes at `/bebo/images/:key`
+ * - Private by default (not publicly accessible)
+ * - Only visible to authenticated users
+ *
+ * ### API Routes
+ *
+ * **Public (within app):**
+ * - `GET /api/users` - Get all visible profiles (directory)
+ * - `GET /api/profile/:userId` - Get specific user's profile
+ * - `GET /api/wall/:userId` - Get wall posts for a user
+ * - `GET /api/luv/remaining` - Check how many luvs you have left today
+ * - `GET /api/luv/received` - Get luvs you've received
+ *
+ * **Authenticated (current user only):**
+ * - `PUT /api/profile` - Update your own profile
+ * - `POST /api/upload` - Upload profile/cover image to R2
+ * - `POST /api/wall/:userId` - Post on someone's wall
+ * - `POST /api/luv/:userId` - Give luv to a user (3 per day limit)
+ *
+ * **Image Serving:**
+ * - `GET /images/:key` - Serve images from R2 (authenticated)
+ *
+ * ### Integration with Other Apps
+ *
+ * Other apps should use Bebo for:
+ * 1. **User avatars**: Query `bebo_profiles.profile_pic_key` and display at `/bebo/images/${key}`
+ * 2. **Display names**: Use `users.alias` (or fallback to email)
+ * 3. **Profile links**: Link to `/bebo` for user profiles
+ *
+ * Example:
+ * ```typescript
+ * // In your app, fetch user's profile picture
+ * const profile = await db.prepare('SELECT profile_pic_key FROM bebo_profiles WHERE user_id = ?').bind(userId).first();
+ * const avatarUrl = profile?.profile_pic_key ? `/bebo/images/${profile.profile_pic_key}` : null;
+ * ```
+ *
+ * See CLAUDE.md section "User Profiles: Bebo as Canonical Profile System" for full details.
+ */
+
 import { Hono } from 'hono';
 import type { AppContext } from '../../types';
 

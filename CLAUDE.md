@@ -215,6 +215,54 @@ Good events to notify on:
 
 Notifications are sent to ntfy.sh and require `NTFY_DEBUG_TOPIC` to be configured. The function handles missing config gracefully (won't crash if not set).
 
+## User Profiles: Bebo as Canonical Profile System
+
+**IMPORTANT**: Bebo is the de facto profile system for all users across the entire application.
+
+### What This Means
+
+- **Bebo profiles are the canonical user profile** - all apps should reference Bebo for user information
+- **Profile pictures**: Use Bebo profile pictures for avatars in chat, comments, wall posts, and any social features
+- **User display names**: Prefer the user's alias from the `users` table or fallback to email
+- **Home page integration**: The home page links to Bebo for profile viewing/editing
+
+### How to Use Bebo Profiles in Your App
+
+```typescript
+// Get a user's Bebo profile picture
+const profile = await c.env.DB
+  .prepare('SELECT profile_pic_key FROM bebo_profiles WHERE user_id = ?')
+  .bind(userId)
+  .first();
+
+if (profile?.profile_pic_key) {
+  const profilePicUrl = `/bebo/images/${profile.profile_pic_key}`;
+  // Use this URL in your UI
+}
+
+// Get user display name
+const user = await c.env.DB
+  .prepare('SELECT COALESCE(alias, email) as display_name FROM users WHERE id = ?')
+  .bind(userId)
+  .first();
+```
+
+### API Endpoints
+
+- `GET /bebo/api/profile/:userId` - Get any user's Bebo profile (includes profile_pic_key, cover_photo_key, bio, luv_count, hidden)
+- `PUT /bebo/api/profile` - Update your own profile
+- `GET /bebo/images/:key` - Serve profile/cover images (authenticated)
+
+### UI Integration
+
+When displaying users in your app:
+1. Fetch their Bebo profile to get `profile_pic_key`
+2. Display image at `/bebo/images/${profile_pic_key}` or use fallback avatar
+3. Use their alias (from `users` table) as display name
+4. Link to `/bebo` to view full profile
+
+See the home page (`public/index.html`) for a reference implementation.
+
 ## Project Structure
 
 ```
@@ -281,11 +329,14 @@ npm run generate-vapid
 
 | App | Path | Description |
 |-----|------|-------------|
-| Home | `/` | App launcher, user info, notification setup |
+| Home | `/` | App launcher, user info, notification setup, links to Bebo profile |
+| **Bebo** | `/bebo` | **Canonical user profile system** - profiles, wall posts, luvs (3/day), R2 image storage |
 | Splits | `/splits` | Splitwise clone - expense sharing with groups, balances, settlements |
 | Chat | `/chat` | Shared group chat for all users (polls every 2s) |
 | Hello | `/hello` | Example app with greeting, AI greeting, visit counter |
 | Boggle | `/boggle` | Multiplayer word game with real-time scoring and ntfy notifications |
+
+**Note**: Bebo is the de facto profile system. All apps should use Bebo for user avatars and profile information.
 
 ## Notes for Agents
 
