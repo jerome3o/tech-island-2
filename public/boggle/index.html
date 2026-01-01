@@ -489,6 +489,18 @@
 
         <div class="words-found" id="allWordsContainer"></div>
 
+        <div class="card" style="margin-top: 20px; background: #f7f7f7;">
+          <details>
+            <summary style="cursor: pointer; font-weight: bold; font-size: 18px; color: #667eea; padding: 10px;">
+              🐛 Debug Data (Click to expand)
+            </summary>
+            <div style="margin-top: 15px;">
+              <button onclick="copyDebugData()" style="margin-bottom: 10px;">📋 Copy to Clipboard</button>
+              <pre id="debugData" style="background: white; padding: 15px; border-radius: 8px; overflow-x: auto; font-size: 12px; max-height: 400px; overflow-y: auto;"></pre>
+            </div>
+          </details>
+        </div>
+
         <div class="actions">
           <button onclick="showLobbyList(); loadGames();">Back to Lobby</button>
         </div>
@@ -952,6 +964,33 @@
           `;
         }).join('');
       }
+
+      // Populate debug data
+      const debugDataDiv = document.getElementById('debugData');
+      debugDataDiv.textContent = JSON.stringify({
+        gameId: currentGameId,
+        gameState: data.game.state,
+        board: data.game.board,
+        players: data.players.map(p => ({
+          user_id: p.user_id,
+          alias: p.alias,
+          email: p.email,
+          score: p.score
+        })),
+        allWords: data.allWords,
+        timestamp: new Date().toISOString()
+      }, null, 2);
+    }
+
+    // Copy debug data to clipboard
+    function copyDebugData() {
+      const debugText = document.getElementById('debugData').textContent;
+      navigator.clipboard.writeText(debugText).then(() => {
+        alert('Debug data copied to clipboard!');
+      }).catch(err => {
+        console.error('Failed to copy:', err);
+        alert('Failed to copy to clipboard');
+      });
     }
 
     // Polling
