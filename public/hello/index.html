@@ -724,9 +724,12 @@
           addDebugLog('Check your device for the notification', 'info');
         } else {
           addDebugLog(`❌ ${data.error || data.message}`, 'error');
+          if (data.details) {
+            addDebugLog(`Details: ${data.details}`, 'error');
+          }
         }
 
-        showNotificationResult(data.message, data.success);
+        showNotificationResult(data.message || data.error, data.success);
       } catch (error) {
         addDebugLog(`❌ Push test failed: ${error.message}`, 'error');
         showNotificationResult('Failed to send push notification: ' + error.message, false);

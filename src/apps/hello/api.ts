@@ -89,20 +89,30 @@ app.post('/api/notifications/test', async (c) => {
     }, 400);
   }
 
-  const success = await sendPushNotification(c.env, subscription, {
-    title: 'Test Notification from Hello App',
-    body: `This is a test push notification sent at ${new Date().toLocaleTimeString()}`,
-    icon: '/icons/icon-192.png',
-    url: '/hello/',
-    tag: 'test-notification'
-  });
+  try {
+    console.log('Attempting to send push notification for user:', user.id);
+    const success = await sendPushNotification(c.env, subscription, {
+      title: 'Test Notification from Hello App',
+      body: `This is a test push notification sent at ${new Date().toLocaleTimeString()}`,
+      icon: '/icons/icon-192.png',
+      url: '/hello/',
+      tag: 'test-notification'
+    });
 
-  return c.json({
-    success,
-    message: success
-      ? 'Push notification sent successfully!'
-      : 'Failed to send push notification. Check console for details.'
-  });
+    return c.json({
+      success,
+      message: success
+        ? 'Push notification sent successfully!'
+        : 'Failed to send push notification. The push service rejected the request.'
+    });
+  } catch (error: any) {
+    console.error('Push notification error:', error);
+    return c.json({
+      success: false,
+      error: error.message || 'Unknown error occurred',
+      details: error.stack
+    }, 500);
+  }
 });
 
 // Subscribe to notifications (same as global endpoint but app-specific)
