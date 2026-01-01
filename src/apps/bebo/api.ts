@@ -26,40 +26,33 @@ app.get('/api/users', async (c) => {
   // Ensure current user has a profile
   await ensureProfile(db, currentUser.id);
 
-  // Get all users
+  // Get all users with visible profiles
   const users = await db
     .prepare(`
-      SELECT id as user_id, email, COALESCE(alias, email) as user_alias
-      FROM users
+      SELECT
+        u.id as user_id,
+        u.email,
+        COALESCE(u.alias, u.email) as user_alias,
+        bp.bio,
+        bp.profile_pic_key,
+        bp.cover_photo_key,
+        bp.luv_count
+      FROM users u
+      INNER JOIN bebo_profiles bp ON u.id = bp.user_id
+      WHERE bp.hidden = 0
       ORDER BY user_alias
     `)
     .all();
 
-  // Get profiles for all users
-  const profiles = await db
-    .prepare(`
-      SELECT user_id, bio, profile_pic_key, cover_photo_key, luv_count
-      FROM bebo_profiles
-    `)
-    .all();
-
-  const profileMap = new Map(profiles.results?.map((p: any) => [p.user_id, p]) || []);
-
-  const enriched = users.results?.map((u: any) => {
-    const profile = profileMap.get(u.user_id) || {
-      user_id: u.user_id,
-      bio: null,
-      profile_pic_key: null,
-      cover_photo_key: null,
-      luv_count: 0
-    };
-    return {
-      user_id: u.user_id,
-      name: u.user_alias,
-      email: u.email,
-      ...profile
-    };
-  }) || [];
+  const enriched = users.results?.map((u: any) => ({
+    user_id: u.user_id,
+    name: u.user_alias,
+    email: u.email,
+    bio: u.bio,
+    profile_pic_key: u.profile_pic_key,
+    cover_photo_key: u.cover_photo_key,
+    luv_count: u.luv_count || 0
+  })) || [];
 
   return c.json(enriched);
 });
@@ -94,7 +87,8 @@ app.get('/api/profile/:userId', async (c) => {
     bio: profile.bio,
     profile_pic_key: profile.profile_pic_key,
     cover_photo_key: profile.cover_photo_key,
-    luv_count: profile.luv_count
+    luv_count: profile.luv_count,
+    hidden: profile.hidden
   });
 });
 
@@ -102,17 +96,21 @@ app.get('/api/profile/:userId', async (c) => {
 app.put('/api/profile', async (c) => {
   const db = c.env.DB;
   const user = c.get('user');
-  const { bio, profile_pic_key, cover_photo_key } = await c.req.json();
+  const { bio, profile_pic_key, cover_photo_key, hidden } = await c.req.json();
 
   await ensureProfile(db, user.id);
+
+  // Automatically make profile visible if any content is set
+  const hasContent = bio || profile_pic_key || cover_photo_key;
+  const shouldBeHidden = hidden === true && !hasContent;
 
   await db
     .prepare(`
       UPDATE bebo_profiles
-      SET bio = ?, profile_pic_key = ?, cover_photo_key = ?, updated_at = strftime('%s', 'now')
+      SET bio = ?, profile_pic_key = ?, cover_photo_key = ?, hidden = ?, updated_at = strftime('%s', 'now')
       WHERE user_id = ?
     `)
-    .bind(bio || null, profile_pic_key || null, cover_photo_key || null, user.id)
+    .bind(bio || null, profile_pic_key || null, cover_photo_key || null, shouldBeHidden ? 1 : 0, user.id)
     .run();
 
   return c.json({ success: true });
