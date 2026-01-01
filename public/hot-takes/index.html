@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🔥 Hot Takes</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    header {
+      text-align: center;
+      color: white;
+      margin-bottom: 30px;
+    }
+
+    header h1 {
+      font-size: 3em;
+      margin-bottom: 10px;
+    }
+
+    header p {
+      font-size: 1.1em;
+      opacity: 0.9;
+    }
+
+    .back-link {
+      display: inline-block;
+      color: white;
+      text-decoration: none;
+      margin-bottom: 20px;
+      opacity: 0.9;
+      transition: opacity 0.2s;
+    }
+
+    .back-link:hover {
+      opacity: 1;
+    }
+
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .submit-form {
+      margin-bottom: 30px;
+    }
+
+    .submit-form h2 {
+      margin-bottom: 15px;
+      color: #333;
+    }
+
+    textarea {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 1em;
+      resize: vertical;
+      min-height: 80px;
+      margin-bottom: 10px;
+      transition: border-color 0.2s;
+    }
+
+    textarea:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+
+    .char-count {
+      text-align: right;
+      color: #666;
+      font-size: 0.9em;
+      margin-bottom: 10px;
+    }
+
+    .char-count.warning {
+      color: #ff9800;
+    }
+
+    .char-count.error {
+      color: #f44336;
+    }
+
+    button {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 1em;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s, opacity 0.2s;
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .secondary-btn {
+      background: #6c757d;
+    }
+
+    .hot-take {
+      padding: 15px;
+      border-bottom: 1px solid #e0e0e0;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .hot-take:last-child {
+      border-bottom: none;
+    }
+
+    .hot-take:hover {
+      background: #f5f5f5;
+    }
+
+    .hot-take-content {
+      font-size: 1.1em;
+      margin-bottom: 10px;
+      color: #333;
+      line-height: 1.5;
+    }
+
+    .hot-take-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: #666;
+      font-size: 0.9em;
+    }
+
+    .comment-count {
+      background: #667eea;
+      color: white;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-weight: 600;
+    }
+
+    .detail-view {
+      display: none;
+    }
+
+    .detail-view.active {
+      display: block;
+    }
+
+    .list-view {
+      display: block;
+    }
+
+    .list-view.hidden {
+      display: none;
+    }
+
+    .take-detail {
+      background: #f5f5f5;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+
+    .take-detail .content {
+      font-size: 1.3em;
+      margin-bottom: 15px;
+      color: #333;
+      line-height: 1.6;
+    }
+
+    .take-detail .meta {
+      color: #666;
+      font-size: 0.9em;
+    }
+
+    .comments-section h3 {
+      margin-bottom: 15px;
+      color: #333;
+    }
+
+    .comment {
+      background: white;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 15px;
+      border-left: 4px solid #e0e0e0;
+    }
+
+    .comment.ai-comment {
+      border-left-color: #ff5722;
+      background: #fff3f0;
+    }
+
+    .comment-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .comment-author {
+      font-weight: 600;
+      color: #333;
+    }
+
+    .ai-badge {
+      background: #ff5722;
+      color: white;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 0.8em;
+      font-weight: 600;
+      margin-left: 8px;
+    }
+
+    .comment-time {
+      color: #666;
+      font-size: 0.85em;
+    }
+
+    .comment-content {
+      color: #333;
+      line-height: 1.5;
+    }
+
+    .add-comment {
+      margin-top: 20px;
+    }
+
+    .add-comment h4 {
+      margin-bottom: 10px;
+      color: #333;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: #666;
+    }
+
+    .error {
+      background: #ffebee;
+      color: #c62828;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: #666;
+    }
+
+    .empty-state h3 {
+      margin-bottom: 10px;
+      color: #333;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <a href="/" class="back-link">← Back to home</a>
+
+    <header>
+      <h1>🔥 Hot Takes</h1>
+      <p>Share your controversial opinions and prepare for battle</p>
+    </header>
+
+    <!-- List View -->
+    <div class="list-view" id="listView">
+      <div class="card submit-form">
+        <h2>Drop Your Hot Take</h2>
+        <textarea
+          id="hotTakeInput"
+          placeholder="Say something controversial..."
+          maxlength="500"
+        ></textarea>
+        <div class="char-count" id="charCount">0 / 500</div>
+        <button id="submitBtn" onclick="submitHotTake()">🔥 Post Hot Take</button>
+      </div>
+
+      <div class="card">
+        <h2 style="margin-bottom: 20px;">Recent Hot Takes</h2>
+        <div id="hotTakesList">
+          <div class="loading">Loading hot takes...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Detail View -->
+    <div class="detail-view" id="detailView">
+      <div class="card">
+        <button class="secondary-btn" onclick="showListView()" style="margin-bottom: 20px;">← Back to all takes</button>
+        <div id="takeDetail"></div>
+      </div>
+
+      <div class="card comments-section">
+        <h3>💬 Comments (<span id="commentCount">0</span>)</h3>
+        <div id="commentsList"></div>
+
+        <div class="add-comment">
+          <h4>Add your argument</h4>
+          <textarea
+            id="commentInput"
+            placeholder="Tell them why they're wrong..."
+            maxlength="500"
+          ></textarea>
+          <div class="char-count" id="commentCharCount">0 / 500</div>
+          <button onclick="submitComment()">Post Comment</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let currentTakeId = null;
+
+    // Character counter for hot take
+    const hotTakeInput = document.getElementById('hotTakeInput');
+    const charCount = document.getElementById('charCount');
+    hotTakeInput.addEventListener('input', () => {
+      const count = hotTakeInput.value.length;
+      charCount.textContent = `${count} / 500`;
+      if (count > 450) {
+        charCount.className = 'char-count error';
+      } else if (count > 400) {
+        charCount.className = 'char-count warning';
+      } else {
+        charCount.className = 'char-count';
+      }
+    });
+
+    // Character counter for comments
+    const commentInput = document.getElementById('commentInput');
+    const commentCharCount = document.getElementById('commentCharCount');
+    commentInput.addEventListener('input', () => {
+      const count = commentInput.value.length;
+      commentCharCount.textContent = `${count} / 500`;
+      if (count > 450) {
+        commentCharCount.className = 'char-count error';
+      } else if (count > 400) {
+        commentCharCount.className = 'char-count warning';
+      } else {
+        commentCharCount.className = 'char-count';
+      }
+    });
+
+    // Check for take ID in URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const takeId = urlParams.get('take');
+    if (takeId) {
+      showDetail(takeId);
+    } else {
+      loadHotTakes();
+    }
+
+    async function loadHotTakes() {
+      try {
+        const response = await fetch('/hot-takes/api/takes');
+        const takes = await response.json();
+
+        const listDiv = document.getElementById('hotTakesList');
+
+        if (takes.length === 0) {
+          listDiv.innerHTML = '<div class="empty-state"><h3>No hot takes yet</h3><p>Be the first to share a controversial opinion!</p></div>';
+          return;
+        }
+
+        listDiv.innerHTML = takes.map(take => `
+          <div class="hot-take" onclick="showDetail(${take.id})">
+            <div class="hot-take-content">${escapeHtml(take.content)}</div>
+            <div class="hot-take-meta">
+              <span>${formatDate(take.created_at)}</span>
+              <span class="comment-count">💬 ${take.comment_count}</span>
+            </div>
+          </div>
+        `).join('');
+      } catch (error) {
+        document.getElementById('hotTakesList').innerHTML = '<div class="error">Failed to load hot takes</div>';
+      }
+    }
+
+    async function submitHotTake() {
+      const content = hotTakeInput.value.trim();
+      if (!content) return;
+
+      const btn = document.getElementById('submitBtn');
+      btn.disabled = true;
+      btn.textContent = 'Posting...';
+
+      try {
+        const response = await fetch('/hot-takes/api/takes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ content })
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          alert(error.error || 'Failed to post hot take');
+          return;
+        }
+
+        const result = await response.json();
+        hotTakeInput.value = '';
+        charCount.textContent = '0 / 500';
+        charCount.className = 'char-count';
+
+        // Show the newly created hot take
+        showDetail(result.id);
+      } catch (error) {
+        alert('Failed to post hot take');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '🔥 Post Hot Take';
+      }
+    }
+
+    async function showDetail(takeId) {
+      currentTakeId = takeId;
+
+      // Update URL without reload
+      window.history.pushState({}, '', `?take=${takeId}`);
+
+      document.getElementById('listView').classList.add('hidden');
+      document.getElementById('detailView').classList.add('active');
+
+      try {
+        const response = await fetch(`/hot-takes/api/takes/${takeId}`);
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to load hot take');
+        }
+
+        document.getElementById('takeDetail').innerHTML = `
+          <div class="take-detail">
+            <div class="content">${escapeHtml(data.take.content)}</div>
+            <div class="meta">Posted ${formatDate(data.take.created_at)}</div>
+          </div>
+        `;
+
+        document.getElementById('commentCount').textContent = data.comments.length;
+
+        if (data.comments.length === 0) {
+          document.getElementById('commentsList').innerHTML = '<div class="empty-state"><p>No comments yet. Be the first to argue!</p></div>';
+        } else {
+          document.getElementById('commentsList').innerHTML = data.comments.map(comment => `
+            <div class="comment ${comment.is_ai ? 'ai-comment' : ''}">
+              <div class="comment-header">
+                <div>
+                  <span class="comment-author">${comment.is_ai ? 'Claude' : 'User'}</span>
+                  ${comment.is_ai ? '<span class="ai-badge">AI</span>' : ''}
+                </div>
+                <span class="comment-time">${formatDate(comment.created_at)}</span>
+              </div>
+              <div class="comment-content">${escapeHtml(comment.content)}</div>
+            </div>
+          `).join('');
+        }
+      } catch (error) {
+        document.getElementById('takeDetail').innerHTML = '<div class="error">Failed to load hot take</div>';
+      }
+    }
+
+    async function submitComment() {
+      const content = commentInput.value.trim();
+      if (!content || !currentTakeId) return;
+
+      try {
+        const response = await fetch(`/hot-takes/api/takes/${currentTakeId}/comments`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ content })
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          alert(error.error || 'Failed to post comment');
+          return;
+        }
+
+        commentInput.value = '';
+        commentCharCount.textContent = '0 / 500';
+        commentCharCount.className = 'char-count';
+
+        // Reload the detail view
+        showDetail(currentTakeId);
+      } catch (error) {
+        alert('Failed to post comment');
+      }
+    }
+
+    function showListView() {
+      // Update URL without reload
+      window.history.pushState({}, '', '/hot-takes/');
+
+      document.getElementById('detailView').classList.remove('active');
+      document.getElementById('listView').classList.remove('hidden');
+      currentTakeId = null;
+      loadHotTakes();
+    }
+
+    // Handle browser back/forward
+    window.addEventListener('popstate', () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const takeId = urlParams.get('take');
+      if (takeId) {
+        showDetail(takeId);
+      } else {
+        showListView();
+      }
+    });
+
+    function formatDate(timestamp) {
+      const date = new Date(timestamp * 1000);
+      const now = new Date();
+      const diff = now - date;
+
+      const minutes = Math.floor(diff / 60000);
+      const hours = Math.floor(diff / 3600000);
+      const days = Math.floor(diff / 86400000);
+
+      if (minutes < 1) return 'just now';
+      if (minutes < 60) return `${minutes}m ago`;
+      if (hours < 24) return `${hours}h ago`;
+      if (days < 7) return `${days}d ago`;
+
+      return date.toLocaleDateString();
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // Allow Enter to submit (with Shift+Enter for newlines)
+    hotTakeInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        submitHotTake();
+      }
+    });
+
+    commentInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        submitComment();
+      }
+    });
+  </script>
+</body>
+</html>
