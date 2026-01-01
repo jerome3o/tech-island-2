@@ -26,11 +26,11 @@ app.get('/api/users', async (c) => {
   // Ensure current user has a profile
   await ensureProfile(db, currentUser.id);
 
-  // Get all users from aliases table (same as what other apps use)
+  // Get all users
   const users = await db
     .prepare(`
-      SELECT DISTINCT user_id, user_alias, email
-      FROM user_aliases
+      SELECT id as user_id, email, COALESCE(alias, email) as user_alias
+      FROM users
       ORDER BY user_alias
     `)
     .all();
@@ -73,7 +73,7 @@ app.get('/api/profile/:userId', async (c) => {
 
   // Get user info
   const user = await db
-    .prepare('SELECT user_id, user_alias, email FROM user_aliases WHERE user_id = ?')
+    .prepare('SELECT id as user_id, COALESCE(alias, email) as user_alias, email FROM users WHERE id = ?')
     .bind(userId)
     .first();
 
@@ -176,10 +176,10 @@ app.get('/api/wall/:userId', async (c) => {
     .prepare(`
       SELECT
         wp.id, wp.content, wp.created_at,
-        ua.user_id as author_id, ua.user_alias as author_name,
+        u.id as author_id, COALESCE(u.alias, u.email) as author_name,
         bp.profile_pic_key as author_pic
       FROM bebo_wall_posts wp
-      JOIN user_aliases ua ON wp.author_id = ua.user_id
+      JOIN users u ON wp.author_id = u.id
       LEFT JOIN bebo_profiles bp ON wp.author_id = bp.user_id
       WHERE wp.wall_owner_id = ?
       ORDER BY wp.created_at DESC
@@ -283,9 +283,9 @@ app.get('/api/luv/remaining', async (c) => {
   // Also get who they gave luvs to today
   const given = await db
     .prepare(`
-      SELECT l.to_user_id, ua.user_alias as to_name
+      SELECT l.to_user_id, COALESCE(u.alias, u.email) as to_name
       FROM bebo_luvs l
-      JOIN user_aliases ua ON l.to_user_id = ua.user_id
+      JOIN users u ON l.to_user_id = u.id
       WHERE l.from_user_id = ? AND l.day = ?
     `)
     .bind(user.id, today)
@@ -307,10 +307,10 @@ app.get('/api/luv/received', async (c) => {
     .prepare(`
       SELECT
         l.given_at, l.day,
-        ua.user_id as from_user_id, ua.user_alias as from_name,
+        u.id as from_user_id, COALESCE(u.alias, u.email) as from_name,
         bp.profile_pic_key as from_pic
       FROM bebo_luvs l
-      JOIN user_aliases ua ON l.from_user_id = ua.user_id
+      JOIN users u ON l.from_user_id = u.id
       LEFT JOIN bebo_profiles bp ON l.from_user_id = bp.user_id
       WHERE l.to_user_id = ?
       ORDER BY l.given_at DESC
