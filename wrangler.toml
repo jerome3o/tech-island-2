@@ -5,21 +5,15 @@ compatibility_date = "2024-12-01"
 # Static assets served from /public
 assets = { directory = "public" }
 
-# Custom domain
-routes = [
-  { pattern = "app.towerhouse.london", custom_domain = true }
-]
+# Custom domain: Set up via Cloudflare Dashboard
+# Workers & Pages > towerhouse-apps > Settings > Domains > Add Custom Domain
 
 [[d1_databases]]
 binding = "DB"
 database_name = "towerhouse-db"
-database_id = "593c5030-9c5e-4b2f-b7fb-eca50b232dbb"
+# database_id set via: wrangler d1 info towerhouse-db
+database_id = "${D1_DATABASE_ID}"
 migrations_dir = "migrations"
 
-# Environment variables (secrets set via wrangler secret)
-# - ANTHROPIC_API_KEY: Your Anthropic API key
-# - VAPID_PUBLIC_KEY: For push notifications
-# - VAPID_PRIVATE_KEY: For push notifications
-
 [vars]
-APP_URL = "https://app.towerhouse.london"
+# APP_URL set via GitHub secret -> wrangler
