@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Feature Requests - Tech Island</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .header {
+      text-align: center;
+      color: white;
+      margin-bottom: 30px;
+    }
+
+    .header h1 {
+      font-size: 2.5em;
+      margin-bottom: 10px;
+    }
+
+    .back-link {
+      display: inline-block;
+      color: white;
+      text-decoration: none;
+      margin-bottom: 20px;
+      opacity: 0.9;
+    }
+
+    .back-link:hover {
+      opacity: 1;
+    }
+
+    .form-card {
+      background: white;
+      border-radius: 12px;
+      padding: 25px;
+      margin-bottom: 30px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    }
+
+    .form-card h2 {
+      margin-bottom: 20px;
+      color: #333;
+    }
+
+    .form-group {
+      margin-bottom: 15px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 5px;
+      color: #555;
+      font-weight: 500;
+    }
+
+    .form-group input,
+    .form-group textarea {
+      width: 100%;
+      padding: 10px;
+      border: 2px solid #e0e0e0;
+      border-radius: 6px;
+      font-size: 1em;
+      font-family: inherit;
+    }
+
+    .form-group textarea {
+      resize: vertical;
+      min-height: 100px;
+    }
+
+    .icon-picker {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(50px, 1fr));
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .icon-option {
+      font-size: 2em;
+      padding: 10px;
+      border: 2px solid #e0e0e0;
+      border-radius: 6px;
+      cursor: pointer;
+      text-align: center;
+      background: white;
+      transition: all 0.2s;
+    }
+
+    .icon-option:hover {
+      transform: scale(1.1);
+      border-color: #667eea;
+    }
+
+    .icon-option.selected {
+      border-color: #667eea;
+      background: #f0f4ff;
+    }
+
+    .submit-btn {
+      width: 100%;
+      padding: 12px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 1.1em;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+
+    .submit-btn:hover {
+      transform: translateY(-2px);
+    }
+
+    .submit-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .requests-list {
+      display: grid;
+      gap: 20px;
+    }
+
+    .request-card {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+      transition: transform 0.2s;
+    }
+
+    .request-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+    }
+
+    .request-header {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      margin-bottom: 15px;
+    }
+
+    .request-icon {
+      font-size: 3em;
+    }
+
+    .request-title {
+      flex: 1;
+    }
+
+    .request-title h3 {
+      color: #333;
+      margin-bottom: 5px;
+    }
+
+    .request-meta {
+      font-size: 0.9em;
+      color: #888;
+    }
+
+    .request-description {
+      color: #555;
+      line-height: 1.6;
+      margin-bottom: 15px;
+    }
+
+    .reactions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding-top: 15px;
+      border-top: 1px solid #e0e0e0;
+    }
+
+    .reaction-btn {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 6px 12px;
+      border: 2px solid #e0e0e0;
+      border-radius: 20px;
+      background: white;
+      cursor: pointer;
+      font-size: 1.2em;
+      transition: all 0.2s;
+    }
+
+    .reaction-btn:hover {
+      transform: scale(1.05);
+      border-color: #667eea;
+    }
+
+    .reaction-btn.active {
+      background: #667eea;
+      border-color: #667eea;
+      color: white;
+    }
+
+    .reaction-count {
+      font-size: 0.8em;
+      font-weight: 600;
+    }
+
+    .loading {
+      text-align: center;
+      color: white;
+      font-size: 1.2em;
+      padding: 40px;
+    }
+
+    .error {
+      background: #ff6b6b;
+      color: white;
+      padding: 15px;
+      border-radius: 6px;
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <a href="/" class="back-link">← Back to Home</a>
+
+    <div class="header">
+      <h1>💡 Feature Requests</h1>
+      <p>Share your ideas and vote on features you'd like to see!</p>
+    </div>
+
+    <div class="form-card">
+      <h2>Submit a New Idea</h2>
+      <form id="submitForm">
+        <div class="form-group">
+          <label for="title">Title</label>
+          <input type="text" id="title" placeholder="Give your idea a catchy name" required>
+        </div>
+
+        <div class="form-group">
+          <label>Choose an Icon</label>
+          <div class="icon-picker" id="iconPicker">
+            <button type="button" class="icon-option" data-icon="🚀">🚀</button>
+            <button type="button" class="icon-option" data-icon="💡">💡</button>
+            <button type="button" class="icon-option" data-icon="🎨">🎨</button>
+            <button type="button" class="icon-option" data-icon="🎮">🎮</button>
+            <button type="button" class="icon-option" data-icon="📱">📱</button>
+            <button type="button" class="icon-option" data-icon="🌟">🌟</button>
+            <button type="button" class="icon-option" data-icon="🔥">🔥</button>
+            <button type="button" class="icon-option" data-icon="⚡">⚡</button>
+            <button type="button" class="icon-option" data-icon="🎯">🎯</button>
+            <button type="button" class="icon-option" data-icon="🏆">🏆</button>
+            <button type="button" class="icon-option" data-icon="🎪">🎪</button>
+            <button type="button" class="icon-option" data-icon="🎭">🎭</button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="description">Description</label>
+          <textarea id="description" placeholder="Describe your idea in detail..." required></textarea>
+        </div>
+
+        <button type="submit" class="submit-btn">Submit Feature Request</button>
+      </form>
+    </div>
+
+    <div id="requestsList"></div>
+  </div>
+
+  <script>
+    const REACTION_EMOJIS = ['❤️', '👍', '👎', '😂', '🎉', '🤔', '👀', '🔥'];
+    let selectedIcon = '💡';
+
+    // Icon picker
+    document.getElementById('iconPicker').addEventListener('click', (e) => {
+      if (e.target.classList.contains('icon-option')) {
+        document.querySelectorAll('.icon-option').forEach(btn => btn.classList.remove('selected'));
+        e.target.classList.add('selected');
+        selectedIcon = e.target.dataset.icon;
+      }
+    });
+
+    // Pre-select first icon
+    document.querySelector('.icon-option').classList.add('selected');
+
+    // Submit form
+    document.getElementById('submitForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const title = document.getElementById('title').value;
+      const description = document.getElementById('description').value;
+
+      const btn = e.target.querySelector('.submit-btn');
+      btn.disabled = true;
+      btn.textContent = 'Submitting...';
+
+      try {
+        const response = await fetch('/feature-requests/api/requests', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title, icon: selectedIcon, description })
+        });
+
+        if (!response.ok) throw new Error('Failed to submit');
+
+        // Clear form
+        document.getElementById('title').value = '';
+        document.getElementById('description').value = '';
+
+        // Reload requests
+        await loadRequests();
+
+        // Scroll to top of list
+        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+      } catch (error) {
+        alert('Failed to submit feature request. Please try again.');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Submit Feature Request';
+      }
+    });
+
+    // Load and display requests
+    async function loadRequests() {
+      const container = document.getElementById('requestsList');
+      container.innerHTML = '<div class="loading">Loading requests...</div>';
+
+      try {
+        const response = await fetch('/feature-requests/api/requests');
+        const requests = await response.json();
+
+        if (requests.length === 0) {
+          container.innerHTML = '<div class="loading">No feature requests yet. Be the first to submit one!</div>';
+          return;
+        }
+
+        container.innerHTML = requests.map(req => `
+          <div class="request-card">
+            <div class="request-header">
+              <div class="request-icon">${req.icon}</div>
+              <div class="request-title">
+                <h3>${escapeHtml(req.title)}</h3>
+                <div class="request-meta">
+                  Submitted ${new Date(req.created_at * 1000).toLocaleDateString()}
+                </div>
+              </div>
+            </div>
+            <div class="request-description">${escapeHtml(req.description)}</div>
+            <div class="reactions" data-request-id="${req.id}">
+              ${REACTION_EMOJIS.map(emoji => {
+                const count = req.reactions[emoji] || 0;
+                const isActive = req.user_reactions.includes(emoji);
+                return `
+                  <button class="reaction-btn ${isActive ? 'active' : ''}" data-emoji="${emoji}">
+                    <span>${emoji}</span>
+                    ${count > 0 ? `<span class="reaction-count">${count}</span>` : ''}
+                  </button>
+                `;
+              }).join('')}
+            </div>
+          </div>
+        `).join('');
+
+        // Add reaction click handlers
+        container.querySelectorAll('.reaction-btn').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            const emoji = btn.dataset.emoji;
+            const requestId = btn.closest('.reactions').dataset.requestId;
+
+            try {
+              await fetch(`/feature-requests/api/requests/${requestId}/react`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ emoji })
+              });
+
+              // Reload to show updated counts
+              await loadRequests();
+            } catch (error) {
+              alert('Failed to update reaction. Please try again.');
+            }
+          });
+        });
+      } catch (error) {
+        container.innerHTML = '<div class="error">Failed to load requests. Please refresh the page.</div>';
+      }
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // Initial load
+    loadRequests();
+  </script>
+</body>
+</html>
