@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chinese Flashcards</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      min-height: 100vh;
+      padding: 20px;
+      color: #333;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    .header {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .header h1 {
+      color: #f5576c;
+      font-size: 2em;
+    }
+
+    .back-link {
+      color: #f5576c;
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .back-link:hover {
+      text-decoration: underline;
+    }
+
+    .view {
+      display: none;
+    }
+
+    .view.active {
+      display: block;
+    }
+
+    .card {
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+    }
+
+    button {
+      background: #f5576c;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+
+    button:hover:not(:disabled) {
+      background: #e04858;
+    }
+
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+
+    button.secondary {
+      background: #6c757d;
+    }
+
+    button.secondary:hover:not(:disabled) {
+      background: #5a6268;
+    }
+
+    input, textarea {
+      padding: 12px;
+      border: 2px solid #ddd;
+      border-radius: 8px;
+      font-size: 16px;
+      width: 100%;
+      font-family: inherit;
+    }
+
+    input:focus, textarea:focus {
+      outline: none;
+      border-color: #f5576c;
+    }
+
+    .deck-list {
+      display: grid;
+      gap: 15px;
+    }
+
+    .deck-item {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .deck-item:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    }
+
+    .deck-item h3 {
+      color: #f5576c;
+      margin-bottom: 8px;
+    }
+
+    .deck-stats {
+      display: flex;
+      gap: 15px;
+      margin-top: 10px;
+      font-size: 14px;
+      color: #666;
+    }
+
+    .flashcard {
+      perspective: 1000px;
+      height: 400px;
+      margin: 20px 0;
+    }
+
+    .flashcard-inner {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      text-align: center;
+      transition: transform 0.6s;
+      transform-style: preserve-3d;
+    }
+
+    .flashcard.flipped .flashcard-inner {
+      transform: rotateY(180deg);
+    }
+
+    .flashcard-front, .flashcard-back {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      backface-visibility: hidden;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 40px;
+    }
+
+    .flashcard-back {
+      transform: rotateY(180deg);
+    }
+
+    .chinese-text {
+      font-size: 4em;
+      font-weight: bold;
+      color: #f5576c;
+      margin-bottom: 20px;
+    }
+
+    .english-text {
+      font-size: 1.5em;
+      color: #333;
+      margin-bottom: 10px;
+    }
+
+    .pinyin-text {
+      font-size: 1.2em;
+      color: #666;
+      margin-bottom: 20px;
+    }
+
+    .breakdown {
+      text-align: left;
+      width: 100%;
+      margin-top: 20px;
+      font-size: 14px;
+    }
+
+    .breakdown-item {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 5px;
+    }
+
+    .example-sentences {
+      text-align: left;
+      width: 100%;
+      margin-top: 20px;
+      font-size: 14px;
+    }
+
+    .example-sentence {
+      margin-bottom: 10px;
+      padding: 10px;
+      background: #f8f9fa;
+      border-radius: 6px;
+    }
+
+    .review-buttons {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+      justify-content: center;
+    }
+
+    .btn-again { background: #dc3545; }
+    .btn-hard { background: #ffc107; color: #333; }
+    .btn-good { background: #28a745; }
+    .btn-easy { background: #17a2b8; }
+
+    .preview-card {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 15px;
+      border: 2px solid #ddd;
+    }
+
+    .preview-card.selected {
+      border-color: #f5576c;
+      background: #fff5f7;
+    }
+
+    .preview-card input[type="checkbox"] {
+      width: auto;
+      margin-right: 10px;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 40px;
+      font-size: 18px;
+      color: #666;
+    }
+
+    .error {
+      background: #f8d7da;
+      color: #721c24;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+
+    .success {
+      background: #d4edda;
+      color: #155724;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: #333;
+    }
+
+    .button-group {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    .audio-button {
+      background: #17a2b8;
+      padding: 8px 16px;
+      font-size: 14px;
+    }
+
+    .progress {
+      text-align: center;
+      font-size: 18px;
+      color: #666;
+      margin-bottom: 20px;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 15px;
+      margin-top: 20px;
+    }
+
+    .stat-card {
+      background: #f8f9fa;
+      padding: 15px;
+      border-radius: 8px;
+      text-align: center;
+    }
+
+    .stat-value {
+      font-size: 2em;
+      font-weight: bold;
+      color: #f5576c;
+    }
+
+    .stat-label {
+      font-size: 14px;
+      color: #666;
+      margin-top: 5px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🀄 Chinese Flashcards</h1>
+      <a href="/" class="back-link">← Back to Home</a>
+    </div>
+
+    <!-- Deck List View -->
+    <div id="deck-list-view" class="view active">
+      <div class="card">
+        <h2>My Decks</h2>
+        <button onclick="showCreateDeck()" style="margin-top: 15px;">+ Create New Deck</button>
+        <div id="deck-list" class="deck-list" style="margin-top: 20px;"></div>
+      </div>
+    </div>
+
+    <!-- Create Deck View -->
+    <div id="create-deck-view" class="view">
+      <div class="card">
+        <h2>Create New Deck</h2>
+        <div class="form-group">
+          <label>Deck Name</label>
+          <input type="text" id="deck-name" placeholder="e.g., HSK 1 Vocabulary">
+        </div>
+        <div class="form-group">
+          <label>Description (optional)</label>
+          <textarea id="deck-description" rows="3" placeholder="What will you learn in this deck?"></textarea>
+        </div>
+        <div class="button-group">
+          <button onclick="createDeck()">Create Deck</button>
+          <button class="secondary" onclick="showDeckList()">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Deck Detail View -->
+    <div id="deck-detail-view" class="view">
+      <div class="card">
+        <h2 id="deck-title"></h2>
+        <p id="deck-description" style="color: #666; margin-top: 10px;"></p>
+        <div class="stats-grid" id="deck-stats"></div>
+        <div class="button-group">
+          <button onclick="startStudy()">Study Now</button>
+          <button class="secondary" onclick="showAddCard()">+ Add Cards</button>
+          <button class="secondary" onclick="showDeckList()">← Back to Decks</button>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Cards in this deck</h3>
+        <div id="card-list"></div>
+      </div>
+    </div>
+
+    <!-- Add Card View -->
+    <div id="add-card-view" class="view">
+      <div class="card">
+        <h2>Add New Cards</h2>
+        <div class="form-group">
+          <label>Chinese Text (word or phrase)</label>
+          <input type="text" id="card-input" placeholder="e.g., 你好 or 谢谢你">
+        </div>
+        <div class="button-group">
+          <button onclick="generateCards()">Generate Cards</button>
+          <button class="secondary" onclick="showDeckDetail()">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Card Preview View -->
+    <div id="preview-view" class="view">
+      <div class="card">
+        <h2>Review Generated Cards</h2>
+        <p style="color: #666; margin-bottom: 20px;">Select the cards you want to add to your deck</p>
+        <div id="preview-list"></div>
+        <div class="button-group">
+          <button onclick="approveSelectedCards()">Add Selected Cards</button>
+          <button class="secondary" onclick="cancelGeneration()">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Study View -->
+    <div id="study-view" class="view">
+      <div class="card">
+        <div class="progress" id="study-progress"></div>
+        <div id="study-area"></div>
+      </div>
+    </div>
+
+    <!-- Completion View -->
+    <div id="completion-view" class="view">
+      <div class="card" style="text-align: center;">
+        <h2>🎉 Great job!</h2>
+        <p style="font-size: 18px; color: #666; margin: 20px 0;">You've completed all cards for today!</p>
+        <button onclick="showDeckDetail()">Back to Deck</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let currentDeckId = null;
+    let currentSessionId = null;
+    let currentStudyCards = [];
+    let currentCardIndex = 0;
+    let cardFlipped = false;
+    let reviewStartTime = null;
+
+    // Initialize
+    async function init() {
+      await loadDecks();
+    }
+
+    // View management
+    function showView(viewId) {
+      document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+      document.getElementById(viewId).classList.add('active');
+    }
+
+    function showDeckList() {
+      showView('deck-list-view');
+      loadDecks();
+    }
+
+    function showCreateDeck() {
+      showView('create-deck-view');
+      document.getElementById('deck-name').value = '';
+      document.getElementById('deck-description').value = '';
+    }
+
+    function showDeckDetail(deckId) {
+      if (deckId) currentDeckId = deckId;
+      showView('deck-detail-view');
+      loadDeckDetail();
+    }
+
+    function showAddCard() {
+      showView('add-card-view');
+      document.getElementById('card-input').value = '';
+    }
+
+    // API calls
+    async function api(endpoint, options = {}) {
+      const response = await fetch(endpoint, {
+        ...options,
+        headers: {
+          'Content-Type': 'application/json',
+          ...options.headers
+        }
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Request failed');
+      }
+      return response.json();
+    }
+
+    // Deck management
+    async function loadDecks() {
+      try {
+        const decks = await api('/flashcards/api/decks');
+        const listEl = document.getElementById('deck-list');
+
+        if (decks.length === 0) {
+          listEl.innerHTML = '<p style="color: #666; text-align: center; padding: 40px;">No decks yet. Create your first deck to get started!</p>';
+          return;
+        }
+
+        listEl.innerHTML = decks.map(deck => `
+          <div class="deck-item" onclick="showDeckDetail(${deck.id})">
+            <h3>${deck.name}</h3>
+            <p style="color: #666; font-size: 14px;">${deck.description || 'No description'}</p>
+            <div class="deck-stats">
+              <span>📚 ${deck.card_count || 0} cards</span>
+              <span>⏰ ${deck.due_count || 0} due</span>
+            </div>
+          </div>
+        `).join('');
+      } catch (error) {
+        console.error('Error loading decks:', error);
+        alert('Failed to load decks');
+      }
+    }
+
+    async function createDeck() {
+      const name = document.getElementById('deck-name').value.trim();
+      const description = document.getElementById('deck-description').value.trim();
+
+      if (!name) {
+        alert('Please enter a deck name');
+        return;
+      }
+
+      try {
+        const deck = await api('/flashcards/api/decks', {
+          method: 'POST',
+          body: JSON.stringify({ name, description })
+        });
+        currentDeckId = deck.id;
+        showDeckDetail();
+      } catch (error) {
+        console.error('Error creating deck:', error);
+        alert('Failed to create deck');
+      }
+    }
+
+    async function loadDeckDetail() {
+      try {
+        const [deck, stats, cards] = await Promise.all([
+          api(`/flashcards/api/decks/${currentDeckId}`),
+          api(`/flashcards/api/decks/${currentDeckId}/stats`),
+          api(`/flashcards/api/decks/${currentDeckId}/cards`)
+        ]);
+
+        document.getElementById('deck-title').textContent = deck.name;
+        document.getElementById('deck-description').textContent = deck.description || '';
+
+        const statsEl = document.getElementById('deck-stats');
+        statsEl.innerHTML = `
+          <div class="stat-card">
+            <div class="stat-value">${stats.total_cards || 0}</div>
+            <div class="stat-label">Total Cards</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">${stats.cards_due || 0}</div>
+            <div class="stat-label">Due Now</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">${stats.new_cards || 0}</div>
+            <div class="stat-label">New</div>
+          </div>
+        `;
+
+        const cardListEl = document.getElementById('card-list');
+        if (cards.length === 0) {
+          cardListEl.innerHTML = '<p style="color: #666; text-align: center; padding: 20px;">No cards yet. Add some cards to start learning!</p>';
+        } else {
+          cardListEl.innerHTML = cards.map(card => `
+            <div style="padding: 10px; border-bottom: 1px solid #eee;">
+              <strong>${card.chinese}</strong> - ${card.english}
+              <span style="color: #666; font-size: 14px; margin-left: 10px;">(${card.pinyin})</span>
+            </div>
+          `).join('');
+        }
+      } catch (error) {
+        console.error('Error loading deck:', error);
+        alert('Failed to load deck details');
+      }
+    }
+
+    // Card generation
+    async function generateCards() {
+      const inputText = document.getElementById('card-input').value.trim();
+
+      if (!inputText) {
+        alert('Please enter Chinese text');
+        return;
+      }
+
+      try {
+        const loadingDiv = document.createElement('div');
+        loadingDiv.className = 'loading';
+        loadingDiv.textContent = 'Generating cards with AI...';
+        document.getElementById('add-card-view').appendChild(loadingDiv);
+
+        const result = await api('/flashcards/api/generate', {
+          method: 'POST',
+          body: JSON.stringify({ deckId: currentDeckId, inputText })
+        });
+
+        currentSessionId = result.sessionId;
+        showPreview(result.cards);
+      } catch (error) {
+        console.error('Error generating cards:', error);
+        alert('Failed to generate cards: ' + error.message);
+      } finally {
+        const loadingDiv = document.querySelector('.loading');
+        if (loadingDiv) loadingDiv.remove();
+      }
+    }
+
+    function showPreview(cards) {
+      showView('preview-view');
+      const previewEl = document.getElementById('preview-list');
+
+      previewEl.innerHTML = cards.map((card, index) => `
+        <div class="preview-card" id="preview-${card.id}">
+          <input type="checkbox" id="checkbox-${card.id}" checked onchange="toggleCardSelection(${card.id})">
+          <label for="checkbox-${card.id}">
+            <div style="display: inline-block;">
+              <div style="font-size: 1.5em; font-weight: bold; color: #f5576c;">${card.chinese}</div>
+              <div style="margin-top: 5px;"><strong>English:</strong> ${card.english}</div>
+              <div><strong>Pinyin:</strong> ${card.pinyin}</div>
+              ${card.breakdown && card.breakdown.length > 0 ? `
+                <div style="margin-top: 10px; font-size: 14px;">
+                  <strong>Breakdown:</strong>
+                  ${card.breakdown.map(b => `${b.character} (${b.pinyin}): ${b.meaning}`).join(', ')}
+                </div>
+              ` : ''}
+              ${card.exampleSentences && card.exampleSentences.length > 0 ? `
+                <div style="margin-top: 10px; font-size: 14px;">
+                  <strong>Examples:</strong>
+                  ${card.exampleSentences.map(ex => `<div>• ${ex.chinese} - ${ex.english}</div>`).join('')}
+                </div>
+              ` : ''}
+            </div>
+          </label>
+        </div>
+      `).join('');
+    }
+
+    function toggleCardSelection(cardId) {
+      const card = document.getElementById(`preview-${cardId}`);
+      const checkbox = document.getElementById(`checkbox-${cardId}`);
+      if (checkbox.checked) {
+        card.classList.add('selected');
+      } else {
+        card.classList.remove('selected');
+      }
+    }
+
+    async function approveSelectedCards() {
+      const checkboxes = document.querySelectorAll('#preview-list input[type="checkbox"]:checked');
+      const cardIds = Array.from(checkboxes).map(cb => parseInt(cb.id.replace('checkbox-', '')));
+
+      if (cardIds.length === 0) {
+        alert('Please select at least one card');
+        return;
+      }
+
+      try {
+        const loadingDiv = document.createElement('div');
+        loadingDiv.className = 'loading';
+        loadingDiv.textContent = 'Generating audio and saving cards...';
+        document.getElementById('preview-view').appendChild(loadingDiv);
+
+        await api(`/flashcards/api/sessions/${currentSessionId}/approve`, {
+          method: 'POST',
+          body: JSON.stringify({ cardIds })
+        });
+
+        alert(`Successfully added ${cardIds.length} card(s)!`);
+        showDeckDetail();
+      } catch (error) {
+        console.error('Error approving cards:', error);
+        alert('Failed to approve cards: ' + error.message);
+      } finally {
+        const loadingDiv = document.querySelector('.loading');
+        if (loadingDiv) loadingDiv.remove();
+      }
+    }
+
+    function cancelGeneration() {
+      if (confirm('Are you sure you want to cancel? Generated cards will be discarded.')) {
+        showDeckDetail();
+      }
+    }
+
+    // Study system
+    async function startStudy() {
+      try {
+        const cards = await api(`/flashcards/api/decks/${currentDeckId}/due`);
+
+        if (cards.length === 0) {
+          alert('No cards due for review!');
+          return;
+        }
+
+        currentStudyCards = cards;
+        currentCardIndex = 0;
+        showView('study-view');
+        showNextCard();
+      } catch (error) {
+        console.error('Error loading study cards:', error);
+        alert('Failed to load study cards');
+      }
+    }
+
+    function showNextCard() {
+      if (currentCardIndex >= currentStudyCards.length) {
+        showView('completion-view');
+        return;
+      }
+
+      const card = currentStudyCards[currentCardIndex];
+      cardFlipped = false;
+      reviewStartTime = Date.now();
+
+      const progressEl = document.getElementById('study-progress');
+      progressEl.textContent = `Card ${currentCardIndex + 1} of ${currentStudyCards.length}`;
+
+      const studyEl = document.getElementById('study-area');
+      studyEl.innerHTML = `
+        <div class="flashcard" id="flashcard" onclick="flipCard()">
+          <div class="flashcard-inner">
+            <div class="flashcard-front">
+              <div class="chinese-text">${card.chinese}</div>
+              <button class="audio-button" onclick="event.stopPropagation(); playAudio('${card.audio_key}')">🔊 Play Audio</button>
+              <p style="margin-top: 20px; color: #666;">Click to reveal answer</p>
+            </div>
+            <div class="flashcard-back">
+              <div class="english-text">${card.english}</div>
+              <div class="pinyin-text">${card.pinyin}</div>
+              <button class="audio-button" onclick="event.stopPropagation(); playAudio('${card.audio_key}')">🔊 Play Audio</button>
+              ${card.breakdown && card.breakdown.length > 0 ? `
+                <div class="breakdown">
+                  <strong>Breakdown:</strong>
+                  ${card.breakdown.map(b => `
+                    <div class="breakdown-item">
+                      <span style="font-weight: bold;">${b.character}</span>
+                      <span>${b.pinyin}</span>
+                      <span>- ${b.meaning}</span>
+                    </div>
+                  `).join('')}
+                </div>
+              ` : ''}
+              ${card.exampleSentences && card.exampleSentences.length > 0 ? `
+                <div class="example-sentences">
+                  <strong>Examples:</strong>
+                  ${card.exampleSentences.map(ex => `
+                    <div class="example-sentence">
+                      <div>${ex.chinese}</div>
+                      <div style="color: #666;">${ex.pinyin}</div>
+                      <div style="color: #666;">${ex.english}</div>
+                    </div>
+                  `).join('')}
+                </div>
+              ` : ''}
+            </div>
+          </div>
+        </div>
+        <div class="review-buttons" id="review-buttons" style="display: none;">
+          <button class="btn-again" onclick="submitReview(0)">Again</button>
+          <button class="btn-hard" onclick="submitReview(1)">Hard</button>
+          <button class="btn-good" onclick="submitReview(2)">Good</button>
+          <button class="btn-easy" onclick="submitReview(3)">Easy</button>
+        </div>
+      `;
+    }
+
+    function flipCard() {
+      const flashcard = document.getElementById('flashcard');
+      flashcard.classList.toggle('flipped');
+      cardFlipped = !cardFlipped;
+
+      if (cardFlipped) {
+        document.getElementById('review-buttons').style.display = 'flex';
+      }
+    }
+
+    async function playAudio(audioKey) {
+      try {
+        const audio = new Audio(`/flashcards/api/audio/${audioKey.replace('audio/', '')}`);
+        await audio.play();
+      } catch (error) {
+        console.error('Error playing audio:', error);
+      }
+    }
+
+    async function submitReview(quality) {
+      const card = currentStudyCards[currentCardIndex];
+      const timeTaken = Date.now() - reviewStartTime;
+
+      try {
+        await api(`/flashcards/api/cards/${card.id}/review`, {
+          method: 'POST',
+          body: JSON.stringify({ quality, timeTakenMs: timeTaken })
+        });
+
+        currentCardIndex++;
+        showNextCard();
+      } catch (error) {
+        console.error('Error submitting review:', error);
+        alert('Failed to submit review');
+      }
+    }
+
+    // Initialize on load
+    init();
+  </script>
+</body>
+</html>

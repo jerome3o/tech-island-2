@@ -1,4 +1,4 @@
-import type { D1Database } from '@cloudflare/workers-types';
+import type { D1Database, R2Bucket } from '@cloudflare/workers-types';
 import type Anthropic from '@anthropic-ai/sdk';
 
 export interface Env {
@@ -8,6 +8,7 @@ export interface Env {
   VAPID_PRIVATE_KEY: string;
   APP_URL: string;
   NTFY_DEBUG_TOPIC?: string;
+  FLASHCARD_AUDIO: R2Bucket;
 }
 
 export interface User {
