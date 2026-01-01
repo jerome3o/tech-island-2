@@ -144,6 +144,7 @@
       position: relative;
       border-radius: 12px 12px 0 0;
       overflow: hidden;
+      cursor: pointer;
     }
 
     .profile-cover img {
@@ -163,6 +164,8 @@
       background: #e5e7eb;
       object-fit: cover;
       box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      z-index: 10;
+      cursor: pointer;
     }
 
     .profile-info {
@@ -455,6 +458,48 @@
       font-size: 3rem;
       margin-bottom: 1rem;
     }
+
+    /* Image Fullscreen Modal */
+    .image-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.95);
+      z-index: 9999;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+    }
+
+    .image-modal.active {
+      display: flex;
+    }
+
+    .image-modal img {
+      max-width: 95%;
+      max-height: 95%;
+      object-fit: contain;
+      border-radius: 8px;
+    }
+
+    .image-modal-close {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      color: white;
+      font-size: 2rem;
+      background: rgba(0, 0, 0, 0.5);
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
@@ -567,6 +612,12 @@
         <div class="loading">Loading luvs...</div>
       </div>
     </div>
+  </div>
+
+  <!-- Image Fullscreen Modal -->
+  <div id="imageModal" class="image-modal" onclick="closeImageModal()">
+    <div class="image-modal-close">×</div>
+    <img id="modalImage" src="" alt="Fullscreen">
   </div>
 
   <script>
@@ -691,6 +742,14 @@
         const cover = document.getElementById('profileCover');
         if (profile.cover_photo_key) {
           cover.innerHTML = `<img src="/bebo/images/${profile.cover_photo_key}" alt="Cover"><div class="profile-avatar" id="profileAvatar"></div>`;
+          // Add click handler for cover photo
+          const coverImg = cover.querySelector('img');
+          if (coverImg) {
+            coverImg.onclick = (e) => {
+              e.stopPropagation();
+              openImageModal(`/bebo/images/${profile.cover_photo_key}`);
+            };
+          }
         } else {
           cover.innerHTML = '<div class="profile-avatar" id="profileAvatar"></div>';
         }
@@ -699,6 +758,11 @@
         const avatar = document.getElementById('profileAvatar');
         if (profile.profile_pic_key) {
           avatar.innerHTML = `<img src="/bebo/images/${profile.profile_pic_key}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
+          // Add click handler for profile pic
+          avatar.onclick = (e) => {
+            e.stopPropagation();
+            openImageModal(`/bebo/images/${profile.profile_pic_key}`);
+          };
         }
 
         // Show edit section if viewing own profile
@@ -925,6 +989,19 @@
       } catch (error) {
         div.innerHTML = '<div class="empty-state"><div class="empty-state-icon">❌</div><p>Failed to load luvs</p></div>';
       }
+    }
+
+    // Image Modal
+    function openImageModal(imageSrc) {
+      const modal = document.getElementById('imageModal');
+      const modalImg = document.getElementById('modalImage');
+      modalImg.src = imageSrc;
+      modal.classList.add('active');
+    }
+
+    function closeImageModal() {
+      const modal = document.getElementById('imageModal');
+      modal.classList.remove('active');
     }
 
     // Utilities
