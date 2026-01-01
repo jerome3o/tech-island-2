@@ -528,4 +528,54 @@ app.post('/api/games/:id/leave', async (c) => {
   return c.json({ message: 'Left game' });
 });
 
+// Get game history for current user
+app.get('/api/history', async (c) => {
+  const db = c.env.DB;
+  const user = c.get('user');
+
+  // Get finished games where user participated
+  const games = await db.prepare(`
+    SELECT
+      g.id,
+      g.created_at,
+      g.start_time,
+      g.timer_seconds,
+      COUNT(DISTINCT p.user_id) as player_count
+    FROM boggle_games g
+    INNER JOIN boggle_players p ON g.id = p.game_id
+    WHERE g.state = 'finished'
+      AND g.id IN (
+        SELECT game_id FROM boggle_players WHERE user_id = ?
+      )
+    GROUP BY g.id
+    ORDER BY g.created_at DESC
+    LIMIT 50
+  `).bind(user.id).all();
+
+  // For each game, get the winner info
+  const gamesWithWinners = await Promise.all(
+    (games.results as any[]).map(async (game) => {
+      const winner = await db.prepare(`
+        SELECT
+          p.user_id,
+          p.score,
+          u.alias,
+          u.email
+        FROM boggle_players p
+        LEFT JOIN users u ON p.user_id = u.id
+        WHERE p.game_id = ?
+        ORDER BY p.score DESC, p.joined_at ASC
+        LIMIT 1
+      `).bind(game.id).first();
+
+      return {
+        ...game,
+        winner
+      };
+    })
+  );
+
+  return c.json({ games: gamesWithWinners });
+});
+
 export default app;
