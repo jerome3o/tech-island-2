@@ -278,8 +278,41 @@ async function encryptPayload(
     paddedPayload
   );
 
+  // Build aes128gcm format: salt + rs + idlen + keyid + ciphertext
+  // See RFC 8188 for aes128gcm format
+  const recordSize = 4096; // Standard record size
+  const header = new Uint8Array(
+    16 + // salt
+    4 +  // record size
+    1 +  // public key length
+    new Uint8Array(localPublicKey).length // public key
+  );
+
+  let offset = 0;
+
+  // Salt (16 bytes)
+  header.set(salt, offset);
+  offset += 16;
+
+  // Record size (4 bytes, big-endian)
+  const rsView = new DataView(header.buffer);
+  rsView.setUint32(offset, recordSize, false); // false = big-endian
+  offset += 4;
+
+  // Public key length (1 byte)
+  header.set([new Uint8Array(localPublicKey).length], offset);
+  offset += 1;
+
+  // Public key
+  header.set(new Uint8Array(localPublicKey), offset);
+
+  // Combine header + encrypted payload
+  const result = new Uint8Array(header.length + encrypted.byteLength);
+  result.set(header, 0);
+  result.set(new Uint8Array(encrypted), header.length);
+
   return {
-    body: encrypted,
+    body: result.buffer,
     salt: base64UrlEncode(salt.buffer),
     publicKey: base64UrlEncode(localPublicKey)
   };
