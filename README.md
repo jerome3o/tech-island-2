@@ -1,4 +1,4 @@
-# Towerhouse Apps
+# Tech Island (2)
 
 A personal app platform built on Cloudflare Workers. Deploy small web apps quickly with built-in auth, database, and AI capabilities.
 
