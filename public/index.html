@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>Towerhouse Apps</title>
+  <title>Jerome's Tech Island</title>
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#4F46E5">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -35,6 +35,13 @@
       color: white;
       margin-bottom: 2rem;
       padding-top: 2rem;
+    }
+
+    .island-logo {
+      width: 80px;
+      height: 80px;
+      margin: 0 auto 1rem;
+      filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.2));
     }
 
     h1 {
@@ -268,7 +275,39 @@
 <body>
   <div class="container">
     <header>
-      <h1>🏠 Towerhouse</h1>
+      <svg class="island-logo" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+        <!-- Ocean waves -->
+        <path d="M0 70 Q25 65, 50 70 T100 70 L100 100 L0 100 Z" fill="#4299e1" opacity="0.6"/>
+        <path d="M0 75 Q25 70, 50 75 T100 75 L100 100 L0 100 Z" fill="#3182ce" opacity="0.7"/>
+
+        <!-- Island base -->
+        <ellipse cx="50" cy="75" rx="35" ry="12" fill="#d69e2e"/>
+
+        <!-- Palm tree trunk -->
+        <rect x="45" y="45" width="4" height="25" fill="#8b4513" rx="2"/>
+
+        <!-- Palm leaves -->
+        <path d="M47 45 Q35 35, 30 30" stroke="#48bb78" stroke-width="3" fill="none" stroke-linecap="round"/>
+        <path d="M47 45 Q42 30, 40 25" stroke="#48bb78" stroke-width="3" fill="none" stroke-linecap="round"/>
+        <path d="M47 45 Q52 30, 54 25" stroke="#48bb78" stroke-width="3" fill="none" stroke-linecap="round"/>
+        <path d="M47 45 Q60 35, 65 30" stroke="#48bb78" stroke-width="3" fill="none" stroke-linecap="round"/>
+
+        <!-- Tech elements - circuit paths -->
+        <circle cx="65" cy="65" r="2.5" fill="#f6e05e"/>
+        <circle cx="72" cy="68" r="2" fill="#f6e05e"/>
+        <path d="M65 65 L72 68" stroke="#f6e05e" stroke-width="1.5"/>
+
+        <circle cx="30" cy="65" r="2.5" fill="#f6e05e"/>
+        <circle cx="23" cy="68" r="2" fill="#f6e05e"/>
+        <path d="M30 65 L23 68" stroke="#f6e05e" stroke-width="1.5"/>
+
+        <!-- Sun/Tech icon -->
+        <circle cx="80" cy="25" r="8" fill="#fbbf24" opacity="0.9"/>
+        <circle cx="80" cy="25" r="5" fill="#f59e0b"/>
+        <!-- Binary rays -->
+        <text x="77" y="15" font-size="6" fill="#fbbf24" font-family="monospace" font-weight="bold">01</text>
+      </svg>
+      <h1>Jerome's Tech Island</h1>
       <p class="subtitle">Your apps, all in one place</p>
     </header>
 
@@ -287,7 +326,7 @@
 
     <div id="install-prompt" class="install-prompt">
       <strong>📱 Install App</strong>
-      <p>Add Towerhouse to your home screen for quick access.</p>
+      <p>Add Tech Island to your home screen for quick access.</p>
       <button id="install-button">Install</button>
     </div>
 
@@ -447,7 +486,7 @@
 
       document.getElementById('test-notification-button')?.addEventListener('click', async () => {
         if (Notification.permission === 'granted') {
-          new Notification('Towerhouse Test', {
+          new Notification('Tech Island Test', {
             body: 'Notifications are working!',
             icon: '/icons/icon-192.png'
           });
