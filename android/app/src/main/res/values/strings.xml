@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Android API Demo</string>
+    <string name="demo_list_title">Android API Demonstrations</string>
+    <string name="camera_demo">Camera</string>
+    <string name="location_demo">Location/GPS</string>
+    <string name="sensor_demo">Sensors</string>
+    <string name="notification_demo">Notifications</string>
+    <string name="storage_demo">Storage</string>
+    <string name="device_info_demo">Device Info</string>
+    <string name="vibrate_demo">Vibration</string>
+    <string name="network_demo">Network/HTTP</string>
+    <string name="permission_denied">Permission denied</string>
+    <string name="permission_required">Permission required for this demo</string>
+</resources>
