@@ -53,4 +53,4 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: deploy --var APP_URL:${{ secrets.APP_URL }}
+          command: deploy --var APP_URL:${{ secrets.APP_URL }} --var ADMIN_EMAIL:${{ secrets.ADMIN_EMAIL }}

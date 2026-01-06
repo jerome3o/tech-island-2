@@ -21,6 +21,7 @@ import featureRequestsApp from './apps/feature-requests/api';
 import flashcardsApp from './apps/flashcards/api';
 import hotTakesApp from './apps/hot-takes/api';
 import paintApp from './apps/paint/api';
+import adminApp from './apps/admin/api';
 
 const app = new Hono<AppContext>();
 
@@ -130,6 +131,7 @@ app.route('/feature-requests', featureRequestsApp);
 app.route('/flashcards', flashcardsApp);
 app.route('/hot-takes', hotTakesApp);
 app.route('/paint', paintApp);
+app.route('/admin', adminApp);
 
 // ============================================
 // Static file serving

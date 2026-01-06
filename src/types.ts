@@ -10,6 +10,7 @@ export interface Env {
   APP_URL: string;
   NTFY_DEBUG_TOPIC?: string;
   FLASHCARD_AUDIO: R2Bucket;
+  ADMIN_EMAIL: string;
 }
 
 export interface User {
