@@ -24,7 +24,7 @@ binding = "FLASHCARD_AUDIO"
 bucket_name = "tech-island-2-flashcard-audio"
 
 [vars]
-# APP_URL set via GitHub secret -> wrangler
+# APP_URL and ADMIN_EMAIL set via GitHub secrets -> wrangler
 
 [observability]
 enabled = true
