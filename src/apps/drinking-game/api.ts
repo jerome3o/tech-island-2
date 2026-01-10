@@ -180,7 +180,7 @@ Style examples:
 
     if (previousPrompts.length > 0) {
       promptContent += `\n\n⚠️ CRITICAL - You already used these challenges. DO NOT repeat similar topics or themes:
-${previousPrompts.slice(0, 8).map(p => `- ${p}`).join('\n')}
+${previousPrompts.slice(0, 8).map((p: string) => `- ${p}`).join('\n')}
 
 AVOID any topics already mentioned above. Pick a COMPLETELY DIFFERENT subject: technology, food, childhood memories, work drama, dating fails, family dynamics, health, hobbies, social media, nightlife, transportation, shopping, etc. Be creative!`;
     }
@@ -221,7 +221,7 @@ Style examples:
 
     if (previousPrompts.length > 0) {
       promptContent += `\n\n⚠️ CRITICAL - You already generated these. DO NOT create anything with similar themes or subjects:
-${previousPrompts.slice(0, 8).map(p => `- ${p}`).join('\n')}
+${previousPrompts.slice(0, 8).map((p: string) => `- ${p}`).join('\n')}
 
 AVOID repeating any topics above. Explore NEW areas: embarrassing moments, questionable decisions, weird habits, social media behavior, relationship drama, work situations, travel mishaps, food crimes, childhood trauma, financial disasters, etc. Get creative!`;
     }
@@ -261,7 +261,7 @@ Examples of the style:
 
     if (previousPrompts.length > 0) {
       promptContent += `\n\n⚠️ CRITICAL REQUIREMENT - You have already generated these questions. You MUST NOT generate anything similar in theme, topic, or subject matter:
-${previousPrompts.slice(0, 8).map(p => `- ${p}`).join('\n')}
+${previousPrompts.slice(0, 8).map((p: string) => `- ${p}`).join('\n')}
 
 DO NOT mention or reference:
 - Any topics already covered above (housing, visas, money, relationships, etc. if they appear)
@@ -282,7 +282,7 @@ Generate something COMPLETELY DIFFERENT. Explore new topics: food, technology, e
       }]
     });
 
-    const text = response.content[0].type === 'text' ? response.content[0].text.trim();
+    const text = response.content[0].type === 'text' ? response.content[0].text.trim() : '';
     // Extract JSON if Claude added extra text
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     const jsonStr = jsonMatch ? jsonMatch[0] : text;
@@ -317,7 +317,7 @@ ${type === 'truth'
 
     if (previousPrompts.length > 0) {
       promptContent += `\n\n⚠️ CRITICAL - You already used these ${type}s. DO NOT repeat similar topics or approaches:
-${previousPrompts.slice(0, 8).map(p => `- ${p}`).join('\n')}
+${previousPrompts.slice(0, 8).map((p: string) => `- ${p}`).join('\n')}
 
 AVOID any subjects already covered. For ${type === 'truth' ? 'truths, explore: secrets, regrets, crushes, lies, fears, guilty pleasures, opinions, confessions, weaknesses, judgments' : 'dares, try: physical challenges, social media stunts, phone pranks, impressions, singing, dancing, confessions to others, food challenges, weird tasks'}. Be original!`;
     }
