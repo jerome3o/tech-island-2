@@ -412,11 +412,27 @@
     let currentMode = null;
     let useAI = false;
     let groupContext = '';
+    let promptHistory = {
+      challenge: [],
+      never: [],
+      rather: [],
+      truthOrDare: []
+    };
 
     // Load settings on page load
     function loadSettings() {
       useAI = localStorage.getItem('useAI') === 'true';
       groupContext = localStorage.getItem('groupContext') || '';
+
+      // Load prompt history
+      const savedHistory = localStorage.getItem('promptHistory');
+      if (savedHistory) {
+        try {
+          promptHistory = JSON.parse(savedHistory);
+        } catch (e) {
+          promptHistory = { challenge: [], never: [], rather: [], truthOrDare: [] };
+        }
+      }
 
       if (useAI) {
         document.getElementById('ai-toggle').classList.add('active');
@@ -427,6 +443,18 @@
         document.getElementById('context-indicator').textContent = '🤖 AI Mode Active';
         document.getElementById('context-indicator').classList.add('active');
       }
+    }
+
+    function savePromptToHistory(mode, prompt) {
+      // Keep last 8 prompts per mode
+      if (!promptHistory[mode]) {
+        promptHistory[mode] = [];
+      }
+      promptHistory[mode].unshift(prompt);
+      if (promptHistory[mode].length > 8) {
+        promptHistory[mode] = promptHistory[mode].slice(0, 8);
+      }
+      localStorage.setItem('promptHistory', JSON.stringify(promptHistory));
     }
 
     function showSettings() {
@@ -531,7 +559,11 @@
 
         if (useAI && groupContext) {
           endpoint = '/drinking-game/api/generate-truth-or-dare';
-          body = JSON.stringify({ context: groupContext, type });
+          body = JSON.stringify({
+            context: groupContext,
+            type,
+            previousPrompts: promptHistory.truthOrDare || []
+          });
         } else {
           endpoint = `/drinking-game/api/truth-or-dare/${type}`;
         }
@@ -543,6 +575,11 @@
         } : undefined);
 
         const data = await res.json();
+
+        // Save to history
+        if (useAI && groupContext && data.prompt) {
+          savePromptToHistory('truthOrDare', data.prompt);
+        }
 
         content.innerHTML = `
           <div class="prompt">${data.prompt}</div>
@@ -602,7 +639,10 @@
       // Use AI generation if enabled and context exists
       if (useAI && groupContext && mode !== 'special') {
         method = 'POST';
-        body = JSON.stringify({ context: groupContext });
+        body = JSON.stringify({
+          context: groupContext,
+          previousPrompts: promptHistory[mode] || []
+        });
 
         switch(mode) {
           case 'challenge':
@@ -642,6 +682,18 @@
 
         const res = await fetch(endpoint, fetchOptions);
         const data = await res.json();
+
+        // Save to history for AI-generated prompts
+        if (useAI && groupContext && mode !== 'special') {
+          if (mode === 'rather' && data.a && data.b) {
+            savePromptToHistory(mode, `${data.a} vs ${data.b}`);
+          } else {
+            const text = data.challenge || data.prompt;
+            if (text) {
+              savePromptToHistory(mode, text);
+            }
+          }
+        }
 
         if (mode === 'rather') {
           content.innerHTML = `
