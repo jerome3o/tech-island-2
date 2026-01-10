@@ -3,42 +3,60 @@ import type { AppContext } from '../../types';
 
 const app = new Hono<AppContext>();
 
-// Game prompts and challenges
+// Game prompts and challenges - UNHINGED KIWI EDITION
 const challenges = [
-  "Take a sip if you've ever stalked your ex on social media",
-  "Whoever has the most unread emails drinks",
-  "Take a drink if you've ever pretended to be busy to avoid someone",
-  "Person who woke up latest today drinks",
-  "Take a sip if you've ever lied about reading a book you haven't",
-  "Whoever has more apps on their phone drinks",
-  "Take a drink if you've ever ghosted someone",
-  "Person with the most recent embarrassing photo in their camera roll drinks",
-  "Take a sip if you've ever sent a text to the wrong person",
-  "Whoever has been to more countries drinks",
+  "Take a drink if you've complained about London weather in the last 24 hours",
+  "Whoever pays more rent drinks (spoiler: you both lose)",
+  "Take a sip if you've pretended to understand cricket to fit in",
+  "Drink if you've ever said 'yeah but have you BEEN to New Zealand?' in an argument",
+  "Person who most recently cried about missing L&P drinks",
+  "Take a drink if your visa stress has kept you awake at 3am",
+  "Whoever has more unread messages from the family WhatsApp group drinks",
+  "Drink if you've secretly judged someone for putting the milk in first",
+  "Take a sip if you've ever pretended a £8 pint is 'reasonable'",
+  "Whoever has been in London longer drinks (and questions their life choices)",
+  "Take a drink if you've Googled 'flights to NZ' this week but can't afford them",
+  "Person who most recently said 'sweet as' to a confused British person drinks",
+  "Drink if you've had an existential crisis on the Northern Line at rush hour",
+  "Take a sip if you still can't work out which coins are which",
+  "Whoever misses NZ meat pies more drinks (both of you, obviously)",
+  "Take a drink if you've ever romanticized Countdown in your head",
+  "Drink if you've lied about 'loving London' to your parents",
+  "Take a sip if you've considered selling a kidney to afford the Tube",
 ];
 
 const neverHaveIEver = [
-  "Never have I ever... pretended to know a song I'd never heard",
-  "Never have I ever... stalked someone I went on one date with",
-  "Never have I ever... lied about my age",
-  "Never have I ever... fake laughed at a terrible joke",
-  "Never have I ever... texted an ex at 2am",
-  "Never have I ever... pretended to be sick to get out of plans",
-  "Never have I ever... looked through someone's phone without asking",
-  "Never have I ever... Instagram stalked someone for over an hour",
-  "Never have I ever... said 'I'm 5 minutes away' when I haven't left yet",
-  "Never have I ever... lied about having plans to avoid hanging out",
+  "Never have I ever... seriously considered moving back to NZ because I'm broke and tired",
+  "Never have I ever... faked a New Zealand accent to seem more interesting at a party",
+  "Never have I ever... ghosted someone because they said Australia and New Zealand are 'basically the same'",
+  "Never have I ever... cried on public transport in London",
+  "Never have I ever... stalked an ex's new partner for more than an hour straight",
+  "Never have I ever... pretended to like Marmite to avoid the Vegemite debate",
+  "Never have I ever... missed a flight because I was too hungover",
+  "Never have I ever... had a full meltdown over how much a meal deal costs here",
+  "Never have I ever... lied to immigration about literally anything",
+  "Never have I ever... hooked up with someone just because they had central heating",
+  "Never have I ever... brought drugs through airport security (by accident or otherwise)",
+  "Never have I ever... pretended to be from 'near Auckland' to avoid explaining where I'm actually from",
+  "Never have I ever... had a quarter-life crisis in a Pret",
+  "Never have I ever... thought about flying back to NZ just to see a GP for free",
+  "Never have I ever... judged someone's flat viewing desperation level",
+  "Never have I ever... created a finsta to stalk people without them knowing",
 ];
 
 const wouldYouRather = [
-  { a: "Give up coffee forever", b: "Give up alcohol forever" },
-  { a: "Always know when someone is lying", b: "Always get away with lying" },
-  { a: "Have to sing everything you say", b: "Have to dance everywhere you go" },
-  { a: "Read minds but can't turn it off", b: "Be invisible but only when no one is looking" },
-  { a: "Fight one horse-sized duck", b: "Fight 100 duck-sized horses" },
-  { a: "Always be 10 minutes late", b: "Always be 20 minutes early" },
-  { a: "Have unlimited free flights", b: "Never have to pay for food again" },
-  { a: "Be able to speak to animals", b: "Be able to speak all human languages" },
+  { a: "Live in a Zone 4 flat with a garden", b: "Live in a Zone 1 shoebox with mold" },
+  { a: "Free flights to NZ forever but you can only stay 1 week", b: "Can't leave London for 5 years but rent is free" },
+  { a: "Have to explain where New Zealand is on a map to everyone you meet", b: "Everyone thinks you're Australian forever" },
+  { a: "London weather forever", b: "NZ prices forever" },
+  { a: "Work visa stress for life", b: "Live in your parents' basement in NZ" },
+  { a: "Only drink Fosters forever", b: "Never drink beer again" },
+  { a: "Unlimited free Tube travel", b: "Unlimited free pints" },
+  { a: "Everyone pronounces Maori words correctly", b: "Free Whittaker's chocolate for life" },
+  { a: "Have a British accent but lose your Kiwi identity", b: "Keep your accent but everyone says 'say fish and chips' forever" },
+  { a: "Your landlord is always reasonable", b: "Your commute is always under 15 minutes" },
+  { a: "Pub closes at 11pm every night", b: "Pub is open 24/7 but £15 pints" },
+  { a: "Boris Johnson moves in next door", b: "Your ex moves in next door" },
 ];
 
 const truthOrDare = {
@@ -142,6 +160,141 @@ app.post('/api/roast', async (c) => {
     return c.json({ roast });
   } catch (error) {
     return c.json({ roast: `Hey ${targetName}, take a drink because Claude is too drunk to roast you right now! 🍺` });
+  }
+});
+
+// Generate dynamic challenge with context
+app.post('/api/generate-challenge', async (c) => {
+  const { context } = await c.req.json();
+  const claude = c.get('claude');
+
+  try {
+    const response = await claude.messages.create({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 100,
+      messages: [{
+        role: 'user',
+        content: `Generate a single unhinged, cynical drinking game challenge for a group of friends. Keep it under 25 words. Make it about comparison (who drinks) or confession (if you've done X, drink).
+
+Context about the group: ${context}
+
+Generate ONE challenge in this style:
+- "Whoever pays more rent drinks"
+- "Take a drink if you've complained about London weather today"
+- "Person who most recently cried about missing home drinks"
+
+Return ONLY the challenge text, nothing else.`
+      }]
+    });
+
+    const challenge = response.content[0].type === 'text' ? response.content[0].text.trim() : challenges[0];
+    return c.json({ challenge });
+  } catch (error) {
+    const fallback = challenges[Math.floor(Math.random() * challenges.length)];
+    return c.json({ challenge: fallback });
+  }
+});
+
+// Generate dynamic "Never Have I Ever"
+app.post('/api/generate-never-have-i-ever', async (c) => {
+  const { context } = await c.req.json();
+  const claude = c.get('claude');
+
+  try {
+    const response = await claude.messages.create({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 100,
+      messages: [{
+        role: 'user',
+        content: `Generate a single "Never have I ever..." statement for a drinking game. Make it unhinged, specific, and darkly funny. Keep it under 20 words.
+
+Context about the group: ${context}
+
+Examples:
+- "Never have I ever... cried on public transport"
+- "Never have I ever... hooked up with someone just because they had central heating"
+- "Never have I ever... seriously considered moving back home because I'm broke"
+
+Return ONLY "Never have I ever... [statement]", nothing else.`
+      }]
+    });
+
+    const prompt = response.content[0].type === 'text' ? response.content[0].text.trim() : neverHaveIEver[0];
+    return c.json({ prompt });
+  } catch (error) {
+    const fallback = neverHaveIEver[Math.floor(Math.random() * neverHaveIEver.length)];
+    return c.json({ prompt: fallback });
+  }
+});
+
+// Generate dynamic "Would You Rather"
+app.post('/api/generate-would-you-rather', async (c) => {
+  const { context } = await c.req.json();
+  const claude = c.get('claude');
+
+  try {
+    const response = await claude.messages.create({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 120,
+      messages: [{
+        role: 'user',
+        content: `Generate a "Would You Rather" question with two impossible/hilarious choices for a drinking game. Make it relevant and cynical.
+
+Context about the group: ${context}
+
+Examples:
+- Option A: "Live in a Zone 4 flat with a garden" / Option B: "Live in a Zone 1 shoebox with mold"
+- Option A: "Work visa stress for life" / Option B: "Live in your parents' basement"
+
+Return as JSON: {"a": "first option", "b": "second option"}. Keep each option under 15 words.`
+      }]
+    });
+
+    const text = response.content[0].type === 'text' ? response.content[0].text.trim() : '';
+    const question = JSON.parse(text);
+    return c.json(question);
+  } catch (error) {
+    const fallback = wouldYouRather[Math.floor(Math.random() * wouldYouRather.length)];
+    return c.json(fallback);
+  }
+});
+
+// Generate dynamic Truth or Dare
+app.post('/api/generate-truth-or-dare', async (c) => {
+  const { context, type } = await c.req.json();
+  const claude = c.get('claude');
+
+  const typePrompt = type === 'truth'
+    ? 'Generate a revealing, uncomfortable TRUTH question. Make it personal and juicy.'
+    : 'Generate a ridiculous, slightly embarrassing DARE. Make it doable but hilarious.';
+
+  try {
+    const response = await claude.messages.create({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 100,
+      messages: [{
+        role: 'user',
+        content: `${typePrompt} Keep it under 25 words.
+
+Context about the group: ${context}
+
+Examples of ${type}s:
+${type === 'truth'
+  ? '- "What\'s the most embarrassing thing in your search history?"\n- "Who here would you least want to be stuck with?"'
+  : '- "Let the other person post whatever they want on your Instagram story"\n- "Text your 5th contact something risky"'
+}
+
+Return ONLY the ${type} text, nothing else.`
+      }]
+    });
+
+    const prompt = response.content[0].type === 'text' ? response.content[0].text.trim() : '';
+    return c.json({ prompt });
+  } catch (error) {
+    const fallback = type === 'truth'
+      ? truthOrDare.truths[Math.floor(Math.random() * truthOrDare.truths.length)]
+      : truthOrDare.dares[Math.floor(Math.random() * truthOrDare.dares.length)];
+    return c.json({ prompt: fallback });
   }
 });
 
