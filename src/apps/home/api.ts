@@ -7,6 +7,13 @@ const app = new Hono<AppContext>();
 app.get('/api/apps', (c) => {
   const apps = [
     {
+      id: 'drinking-game',
+      name: 'Drinking Game',
+      description: 'Fun party games with challenges and roasts',
+      path: '/drinking-game',
+      icon: '🍺'
+    },
+    {
       id: 'paint',
       name: 'Paint Studio',
       description: 'Create artwork, share it, and get AI critiques',

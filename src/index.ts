@@ -22,6 +22,7 @@ import flashcardsApp from './apps/flashcards/api';
 import hotTakesApp from './apps/hot-takes/api';
 import paintApp from './apps/paint/api';
 import adminApp from './apps/admin/api';
+import drinkingGameApp from './apps/drinking-game/api';
 
 const app = new Hono<AppContext>();
 
@@ -132,6 +133,7 @@ app.route('/flashcards', flashcardsApp);
 app.route('/hot-takes', hotTakesApp);
 app.route('/paint', paintApp);
 app.route('/admin', adminApp);
+app.route('/drinking-game', drinkingGameApp);
 
 // ============================================
 // Static file serving

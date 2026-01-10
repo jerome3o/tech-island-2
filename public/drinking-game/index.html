@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Drinking Game 🍺</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+      color: white;
+    }
+
+    .container {
+      max-width: 500px;
+      margin: 0 auto;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    h1 {
+      font-size: 2.5em;
+      margin-bottom: 10px;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    }
+
+    .subtitle {
+      font-size: 1.1em;
+      opacity: 0.9;
+    }
+
+    .back-link {
+      display: inline-block;
+      color: white;
+      text-decoration: none;
+      margin-bottom: 20px;
+      padding: 8px 16px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 20px;
+      font-size: 0.9em;
+      transition: background 0.3s;
+    }
+
+    .back-link:hover {
+      background: rgba(255,255,255,0.3);
+    }
+
+    .game-modes {
+      display: grid;
+      gap: 15px;
+      margin-bottom: 30px;
+    }
+
+    .mode-btn {
+      padding: 20px;
+      background: rgba(255,255,255,0.15);
+      border: 2px solid rgba(255,255,255,0.3);
+      border-radius: 15px;
+      color: white;
+      font-size: 1.1em;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      backdrop-filter: blur(10px);
+      text-align: left;
+      min-height: 80px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .mode-btn:active {
+      transform: scale(0.98);
+    }
+
+    .mode-btn:hover {
+      background: rgba(255,255,255,0.25);
+      border-color: rgba(255,255,255,0.5);
+    }
+
+    .mode-title {
+      font-size: 1.3em;
+    }
+
+    .mode-desc {
+      font-size: 0.85em;
+      opacity: 0.8;
+      font-weight: normal;
+    }
+
+    .game-screen {
+      display: none;
+      background: rgba(255,255,255,0.15);
+      border-radius: 20px;
+      padding: 30px;
+      backdrop-filter: blur(10px);
+      border: 2px solid rgba(255,255,255,0.3);
+      min-height: 300px;
+    }
+
+    .game-screen.active {
+      display: block;
+      animation: fadeIn 0.3s;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .prompt {
+      font-size: 1.4em;
+      line-height: 1.5;
+      text-align: center;
+      margin: 30px 0;
+      min-height: 120px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: slideIn 0.5s;
+    }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateX(-20px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    .action-btn {
+      width: 100%;
+      padding: 18px;
+      background: rgba(255,255,255,0.9);
+      color: #667eea;
+      border: none;
+      border-radius: 12px;
+      font-size: 1.1em;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.3s;
+      margin-top: 20px;
+    }
+
+    .action-btn:active {
+      transform: scale(0.98);
+    }
+
+    .action-btn:hover {
+      background: white;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    }
+
+    .action-btn.secondary {
+      background: rgba(255,255,255,0.2);
+      color: white;
+      border: 2px solid rgba(255,255,255,0.5);
+    }
+
+    .choice-buttons {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+      margin-top: 30px;
+    }
+
+    .choice-btn {
+      padding: 50px 20px;
+      background: rgba(255,255,255,0.2);
+      border: 2px solid rgba(255,255,255,0.4);
+      border-radius: 15px;
+      color: white;
+      font-size: 1em;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      text-align: center;
+      line-height: 1.4;
+    }
+
+    .choice-btn:active {
+      transform: scale(0.98);
+    }
+
+    .choice-btn:hover {
+      background: rgba(255,255,255,0.3);
+      border-color: rgba(255,255,255,0.6);
+    }
+
+    .loading {
+      text-align: center;
+      font-size: 1.2em;
+      opacity: 0.8;
+    }
+
+    .special-challenge {
+      text-align: center;
+      margin: 20px 0;
+    }
+
+    .challenge-title {
+      font-size: 2em;
+      margin-bottom: 15px;
+    }
+
+    .challenge-desc {
+      font-size: 1.2em;
+      line-height: 1.6;
+    }
+
+    @media (max-width: 400px) {
+      h1 {
+        font-size: 2em;
+      }
+
+      .mode-title {
+        font-size: 1.1em;
+      }
+
+      .prompt {
+        font-size: 1.2em;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <a href="/" class="back-link">← Back to Home</a>
+
+    <header>
+      <h1>🍺 Drinking Game 🍺</h1>
+      <p class="subtitle">Time to get this party started!</p>
+    </header>
+
+    <div id="menu" class="game-modes">
+      <button class="mode-btn" onclick="startGame('challenge')">
+        <span class="mode-title">🎲 Random Challenges</span>
+        <span class="mode-desc">Quick fire drinking prompts</span>
+      </button>
+
+      <button class="mode-btn" onclick="startGame('never')">
+        <span class="mode-title">🙈 Never Have I Ever</span>
+        <span class="mode-desc">Classic confession game</span>
+      </button>
+
+      <button class="mode-btn" onclick="startGame('rather')">
+        <span class="mode-title">🤔 Would You Rather</span>
+        <span class="mode-desc">Impossible choices</span>
+      </button>
+
+      <button class="mode-btn" onclick="startGame('truth-dare')">
+        <span class="mode-title">🎭 Truth or Dare</span>
+        <span class="mode-desc">You know the drill</span>
+      </button>
+
+      <button class="mode-btn" onclick="startGame('special')">
+        <span class="mode-title">⚡ Special Challenges</span>
+        <span class="mode-desc">Face-to-face competitions</span>
+      </button>
+
+      <button class="mode-btn" onclick="startGame('roast')">
+        <span class="mode-title">🔥 AI Roast Generator</span>
+        <span class="mode-desc">Let Claude roast you</span>
+      </button>
+    </div>
+
+    <div id="game-screen" class="game-screen">
+      <div id="game-content"></div>
+      <button class="action-btn secondary" onclick="backToMenu()">← Back to Menu</button>
+    </div>
+  </div>
+
+  <script>
+    let currentMode = null;
+
+    function startGame(mode) {
+      currentMode = mode;
+      document.getElementById('menu').style.display = 'none';
+      document.getElementById('game-screen').classList.add('active');
+
+      if (mode === 'truth-dare') {
+        showTruthOrDareChoice();
+      } else if (mode === 'roast') {
+        showRoastInput();
+      } else {
+        loadPrompt(mode);
+      }
+    }
+
+    function backToMenu() {
+      document.getElementById('menu').style.display = 'grid';
+      document.getElementById('game-screen').classList.remove('active');
+      currentMode = null;
+    }
+
+    function showTruthOrDareChoice() {
+      const content = `
+        <h2 style="text-align: center; margin-bottom: 30px; font-size: 1.8em;">Choose your fate...</h2>
+        <div class="choice-buttons">
+          <button class="choice-btn" onclick="loadTruthOrDare('truth')">
+            <div style="font-size: 2em; margin-bottom: 10px;">🗣️</div>
+            TRUTH
+          </button>
+          <button class="choice-btn" onclick="loadTruthOrDare('dare')">
+            <div style="font-size: 2em; margin-bottom: 10px;">⚡</div>
+            DARE
+          </button>
+        </div>
+      `;
+      document.getElementById('game-content').innerHTML = content;
+    }
+
+    async function loadTruthOrDare(type) {
+      const content = document.getElementById('game-content');
+      content.innerHTML = '<div class="loading">Loading...</div>';
+
+      try {
+        const res = await fetch(`/drinking-game/api/truth-or-dare/${type}`);
+        const data = await res.json();
+
+        content.innerHTML = `
+          <div class="prompt">${data.prompt}</div>
+          <button class="action-btn" onclick="showTruthOrDareChoice()">Next Round</button>
+        `;
+      } catch (error) {
+        content.innerHTML = `<div class="prompt">Oops! Something went wrong. Try again?</div>`;
+      }
+    }
+
+    function showRoastInput() {
+      const content = `
+        <h2 style="text-align: center; margin-bottom: 20px; font-size: 1.6em;">Who's getting roasted?</h2>
+        <input type="text" id="roast-name" placeholder="Enter a name..."
+          style="width: 100%; padding: 15px; border-radius: 10px; border: 2px solid rgba(255,255,255,0.3);
+          background: rgba(255,255,255,0.2); color: white; font-size: 1.1em; margin-bottom: 20px;"
+          onkeypress="if(event.key==='Enter') generateRoast()">
+        <button class="action-btn" onclick="generateRoast()">🔥 Generate Roast</button>
+        <div id="roast-result" style="margin-top: 20px;"></div>
+      `;
+      document.getElementById('game-content').innerHTML = content;
+      document.getElementById('roast-name').focus();
+    }
+
+    async function generateRoast() {
+      const nameInput = document.getElementById('roast-name');
+      const name = nameInput.value.trim() || 'you';
+      const resultDiv = document.getElementById('roast-result');
+
+      resultDiv.innerHTML = '<div class="loading">Claude is cooking up a roast...</div>';
+
+      try {
+        const res = await fetch('/drinking-game/api/roast', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ targetName: name })
+        });
+        const data = await res.json();
+
+        resultDiv.innerHTML = `
+          <div class="prompt" style="margin-top: 20px;">${data.roast}</div>
+          <button class="action-btn" onclick="generateRoast()" style="margin-top: 20px;">🔥 Another One!</button>
+        `;
+      } catch (error) {
+        resultDiv.innerHTML = `<div class="prompt">Claude is too drunk to roast right now! 🍺</div>`;
+      }
+    }
+
+    async function loadPrompt(mode) {
+      const content = document.getElementById('game-content');
+      content.innerHTML = '<div class="loading">Loading...</div>';
+
+      let endpoint = '';
+      switch(mode) {
+        case 'challenge':
+          endpoint = '/drinking-game/api/challenge';
+          break;
+        case 'never':
+          endpoint = '/drinking-game/api/never-have-i-ever';
+          break;
+        case 'rather':
+          endpoint = '/drinking-game/api/would-you-rather';
+          break;
+        case 'special':
+          endpoint = '/drinking-game/api/special-challenge';
+          break;
+      }
+
+      try {
+        const res = await fetch(endpoint);
+        const data = await res.json();
+
+        if (mode === 'rather') {
+          content.innerHTML = `
+            <h2 style="text-align: center; margin-bottom: 30px; font-size: 1.6em;">Would You Rather...</h2>
+            <div class="choice-buttons">
+              <button class="choice-btn">${data.a}</button>
+              <button class="choice-btn">${data.b}</button>
+            </div>
+            <p style="text-align: center; margin-top: 20px; opacity: 0.9;">Minority drinks!</p>
+            <button class="action-btn" onclick="loadPrompt('rather')">Next Question</button>
+          `;
+        } else if (mode === 'special') {
+          content.innerHTML = `
+            <div class="special-challenge">
+              <div class="challenge-title">${data.title}</div>
+              <div class="challenge-desc">${data.description}</div>
+            </div>
+            <button class="action-btn" onclick="loadPrompt('special')">Next Challenge</button>
+          `;
+        } else {
+          const text = data.challenge || data.prompt;
+          content.innerHTML = `
+            <div class="prompt">${text}</div>
+            <button class="action-btn" onclick="loadPrompt('${mode}')">Next</button>
+          `;
+        }
+      } catch (error) {
+        content.innerHTML = `<div class="prompt">Oops! Something went wrong. Try again?</div>`;
+      }
+    }
+  </script>
+</body>
+</html>
