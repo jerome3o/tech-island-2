@@ -173,18 +173,19 @@ app.post('/api/generate-challenge', async (c) => {
 
 Context about the group: ${context}
 
-Generate ONE challenge in this style:
+Style examples:
 - "Whoever pays more rent drinks"
 - "Take a drink if you've complained about London weather today"
 - "Person who most recently cried about missing home drinks"`;
 
     if (previousPrompts.length > 0) {
-      promptContent += `\n\nIMPORTANT: DO NOT repeat these recent prompts or similar themes:\n${previousPrompts.slice(0, 8).map(p => `- ${p}`).join('\n')}
+      promptContent += `\n\n⚠️ CRITICAL - You already used these challenges. DO NOT repeat similar topics or themes:
+${previousPrompts.slice(0, 8).map(p => `- ${p}`).join('\n')}
 
-Make sure your new prompt is DIFFERENT and covers NEW territory.`;
+AVOID any topics already mentioned above. Pick a COMPLETELY DIFFERENT subject: technology, food, childhood memories, work drama, dating fails, family dynamics, health, hobbies, social media, nightlife, transportation, shopping, etc. Be creative!`;
     }
 
-    promptContent += '\n\nReturn ONLY the challenge text, nothing else.';
+    promptContent += '\n\nReturn ONLY the challenge text, nothing else. No quotes, no preamble.';
 
     const response = await claude.messages.create({
       model: 'claude-opus-4-5-20251101',
@@ -195,7 +196,7 @@ Make sure your new prompt is DIFFERENT and covers NEW territory.`;
       }]
     });
 
-    const challenge = response.content[0].type === 'text' ? response.content[0].text.trim() : challenges[0];
+    const challenge = response.content[0].type === 'text' ? response.content[0].text.trim().replace(/^["']|["']$/g, '') : challenges[0];
     return c.json({ challenge });
   } catch (error) {
     const fallback = challenges[Math.floor(Math.random() * challenges.length)];
@@ -213,15 +214,16 @@ app.post('/api/generate-never-have-i-ever', async (c) => {
 
 Context about the group: ${context}
 
-Examples:
+Style examples:
 - "Never have I ever... cried on public transport"
 - "Never have I ever... hooked up with someone just because they had central heating"
 - "Never have I ever... seriously considered moving back home because I'm broke"`;
 
     if (previousPrompts.length > 0) {
-      promptContent += `\n\nIMPORTANT: DO NOT repeat these recent prompts or similar themes:\n${previousPrompts.slice(0, 8).map(p => `- ${p}`).join('\n')}
+      promptContent += `\n\n⚠️ CRITICAL - You already generated these. DO NOT create anything with similar themes or subjects:
+${previousPrompts.slice(0, 8).map(p => `- ${p}`).join('\n')}
 
-Make sure your new prompt is DIFFERENT and covers NEW territory.`;
+AVOID repeating any topics above. Explore NEW areas: embarrassing moments, questionable decisions, weird habits, social media behavior, relationship drama, work situations, travel mishaps, food crimes, childhood trauma, financial disasters, etc. Get creative!`;
     }
 
     promptContent += '\n\nReturn ONLY "Never have I ever... [statement]", nothing else.';
@@ -249,35 +251,45 @@ app.post('/api/generate-would-you-rather', async (c) => {
   const claude = c.get('claude');
 
   try {
-    let promptContent = `Generate a "Would You Rather" question with two impossible/hilarious choices for a drinking game. Make it relevant and cynical.
+    let promptContent = `You are generating a "Would You Rather" question for a drinking game. Create two impossible/hilarious choices that force a difficult decision. Make it relevant, cynical, and specific to the group context.
 
 Context about the group: ${context}
 
-Examples:
+Examples of the style:
 - Option A: "Live in a Zone 4 flat with a garden" / Option B: "Live in a Zone 1 shoebox with mold"
 - Option A: "Work visa stress for life" / Option B: "Live in your parents' basement"`;
 
     if (previousPrompts.length > 0) {
-      promptContent += `\n\nIMPORTANT: DO NOT repeat these recent prompts or similar themes:\n${previousPrompts.slice(0, 8).map(p => `- ${p}`).join('\n')}
+      promptContent += `\n\n⚠️ CRITICAL REQUIREMENT - You have already generated these questions. You MUST NOT generate anything similar in theme, topic, or subject matter:
+${previousPrompts.slice(0, 8).map(p => `- ${p}`).join('\n')}
 
-Make sure your new question is DIFFERENT and covers NEW territory.`;
+DO NOT mention or reference:
+- Any topics already covered above (housing, visas, money, relationships, etc. if they appear)
+- Any similar dilemmas or trade-offs
+- Any recycled concepts
+
+Generate something COMPLETELY DIFFERENT. Explore new topics: food, technology, embarrassing situations, career choices, supernatural scenarios, pop culture, childhood, future, family, habits, possessions, abilities, etc. Be creative and original!`;
     }
 
-    promptContent += '\n\nReturn as JSON: {"a": "first option", "b": "second option"}. Keep each option under 15 words.';
+    promptContent += '\n\nReturn ONLY valid JSON in this exact format: {"a": "first option", "b": "second option"}. Keep each option under 15 words. No other text.';
 
     const response = await claude.messages.create({
       model: 'claude-opus-4-5-20251101',
-      max_tokens: 120,
+      max_tokens: 150,
       messages: [{
         role: 'user',
         content: promptContent
       }]
     });
 
-    const text = response.content[0].type === 'text' ? response.content[0].text.trim() : '';
-    const question = JSON.parse(text);
+    const text = response.content[0].type === 'text' ? response.content[0].text.trim();
+    // Extract JSON if Claude added extra text
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    const jsonStr = jsonMatch ? jsonMatch[0] : text;
+    const question = JSON.parse(jsonStr);
     return c.json(question);
   } catch (error) {
+    console.error('Would you rather generation error:', error);
     const fallback = wouldYouRather[Math.floor(Math.random() * wouldYouRather.length)];
     return c.json(fallback);
   }
@@ -297,16 +309,17 @@ app.post('/api/generate-truth-or-dare', async (c) => {
 
 Context about the group: ${context}
 
-Examples of ${type}s:
+Style examples for ${type}s:
 ${type === 'truth'
   ? '- "What\'s the most embarrassing thing in your search history?"\n- "Who here would you least want to be stuck with?"'
   : '- "Let the other person post whatever they want on your Instagram story"\n- "Text your 5th contact something risky"'
 }`;
 
     if (previousPrompts.length > 0) {
-      promptContent += `\n\nIMPORTANT: DO NOT repeat these recent prompts or similar themes:\n${previousPrompts.slice(0, 8).map(p => `- ${p}`).join('\n')}
+      promptContent += `\n\n⚠️ CRITICAL - You already used these ${type}s. DO NOT repeat similar topics or approaches:
+${previousPrompts.slice(0, 8).map(p => `- ${p}`).join('\n')}
 
-Make sure your new ${type} is DIFFERENT and covers NEW territory.`;
+AVOID any subjects already covered. For ${type === 'truth' ? 'truths, explore: secrets, regrets, crushes, lies, fears, guilty pleasures, opinions, confessions, weaknesses, judgments' : 'dares, try: physical challenges, social media stunts, phone pranks, impressions, singing, dancing, confessions to others, food challenges, weird tasks'}. Be original!`;
     }
 
     promptContent += `\n\nReturn ONLY the ${type} text, nothing else.`;
