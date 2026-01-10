@@ -148,7 +148,7 @@ app.post('/api/roast', async (c) => {
 
   try {
     const response = await claude.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-opus-4-5-20251101',
       max_tokens: 150,
       messages: [{
         role: 'user',
@@ -165,25 +165,33 @@ app.post('/api/roast', async (c) => {
 
 // Generate dynamic challenge with context
 app.post('/api/generate-challenge', async (c) => {
-  const { context } = await c.req.json();
+  const { context, previousPrompts = [] } = await c.req.json();
   const claude = c.get('claude');
 
   try {
-    const response = await claude.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 100,
-      messages: [{
-        role: 'user',
-        content: `Generate a single unhinged, cynical drinking game challenge for a group of friends. Keep it under 25 words. Make it about comparison (who drinks) or confession (if you've done X, drink).
+    let promptContent = `Generate a single unhinged, cynical drinking game challenge for a group of friends. Keep it under 25 words. Make it about comparison (who drinks) or confession (if you've done X, drink).
 
 Context about the group: ${context}
 
 Generate ONE challenge in this style:
 - "Whoever pays more rent drinks"
 - "Take a drink if you've complained about London weather today"
-- "Person who most recently cried about missing home drinks"
+- "Person who most recently cried about missing home drinks"`;
 
-Return ONLY the challenge text, nothing else.`
+    if (previousPrompts.length > 0) {
+      promptContent += `\n\nIMPORTANT: DO NOT repeat these recent prompts or similar themes:\n${previousPrompts.slice(0, 8).map(p => `- ${p}`).join('\n')}
+
+Make sure your new prompt is DIFFERENT and covers NEW territory.`;
+    }
+
+    promptContent += '\n\nReturn ONLY the challenge text, nothing else.';
+
+    const response = await claude.messages.create({
+      model: 'claude-opus-4-5-20251101',
+      max_tokens: 100,
+      messages: [{
+        role: 'user',
+        content: promptContent
       }]
     });
 
@@ -197,25 +205,33 @@ Return ONLY the challenge text, nothing else.`
 
 // Generate dynamic "Never Have I Ever"
 app.post('/api/generate-never-have-i-ever', async (c) => {
-  const { context } = await c.req.json();
+  const { context, previousPrompts = [] } = await c.req.json();
   const claude = c.get('claude');
 
   try {
-    const response = await claude.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 100,
-      messages: [{
-        role: 'user',
-        content: `Generate a single "Never have I ever..." statement for a drinking game. Make it unhinged, specific, and darkly funny. Keep it under 20 words.
+    let promptContent = `Generate a single "Never have I ever..." statement for a drinking game. Make it unhinged, specific, and darkly funny. Keep it under 20 words.
 
 Context about the group: ${context}
 
 Examples:
 - "Never have I ever... cried on public transport"
 - "Never have I ever... hooked up with someone just because they had central heating"
-- "Never have I ever... seriously considered moving back home because I'm broke"
+- "Never have I ever... seriously considered moving back home because I'm broke"`;
 
-Return ONLY "Never have I ever... [statement]", nothing else.`
+    if (previousPrompts.length > 0) {
+      promptContent += `\n\nIMPORTANT: DO NOT repeat these recent prompts or similar themes:\n${previousPrompts.slice(0, 8).map(p => `- ${p}`).join('\n')}
+
+Make sure your new prompt is DIFFERENT and covers NEW territory.`;
+    }
+
+    promptContent += '\n\nReturn ONLY "Never have I ever... [statement]", nothing else.';
+
+    const response = await claude.messages.create({
+      model: 'claude-opus-4-5-20251101',
+      max_tokens: 100,
+      messages: [{
+        role: 'user',
+        content: promptContent
       }]
     });
 
@@ -229,24 +245,32 @@ Return ONLY "Never have I ever... [statement]", nothing else.`
 
 // Generate dynamic "Would You Rather"
 app.post('/api/generate-would-you-rather', async (c) => {
-  const { context } = await c.req.json();
+  const { context, previousPrompts = [] } = await c.req.json();
   const claude = c.get('claude');
 
   try {
-    const response = await claude.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 120,
-      messages: [{
-        role: 'user',
-        content: `Generate a "Would You Rather" question with two impossible/hilarious choices for a drinking game. Make it relevant and cynical.
+    let promptContent = `Generate a "Would You Rather" question with two impossible/hilarious choices for a drinking game. Make it relevant and cynical.
 
 Context about the group: ${context}
 
 Examples:
 - Option A: "Live in a Zone 4 flat with a garden" / Option B: "Live in a Zone 1 shoebox with mold"
-- Option A: "Work visa stress for life" / Option B: "Live in your parents' basement"
+- Option A: "Work visa stress for life" / Option B: "Live in your parents' basement"`;
 
-Return as JSON: {"a": "first option", "b": "second option"}. Keep each option under 15 words.`
+    if (previousPrompts.length > 0) {
+      promptContent += `\n\nIMPORTANT: DO NOT repeat these recent prompts or similar themes:\n${previousPrompts.slice(0, 8).map(p => `- ${p}`).join('\n')}
+
+Make sure your new question is DIFFERENT and covers NEW territory.`;
+    }
+
+    promptContent += '\n\nReturn as JSON: {"a": "first option", "b": "second option"}. Keep each option under 15 words.';
+
+    const response = await claude.messages.create({
+      model: 'claude-opus-4-5-20251101',
+      max_tokens: 120,
+      messages: [{
+        role: 'user',
+        content: promptContent
       }]
     });
 
@@ -261,7 +285,7 @@ Return as JSON: {"a": "first option", "b": "second option"}. Keep each option un
 
 // Generate dynamic Truth or Dare
 app.post('/api/generate-truth-or-dare', async (c) => {
-  const { context, type } = await c.req.json();
+  const { context, type, previousPrompts = [] } = await c.req.json();
   const claude = c.get('claude');
 
   const typePrompt = type === 'truth'
@@ -269,12 +293,7 @@ app.post('/api/generate-truth-or-dare', async (c) => {
     : 'Generate a ridiculous, slightly embarrassing DARE. Make it doable but hilarious.';
 
   try {
-    const response = await claude.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 100,
-      messages: [{
-        role: 'user',
-        content: `${typePrompt} Keep it under 25 words.
+    let promptContent = `${typePrompt} Keep it under 25 words.
 
 Context about the group: ${context}
 
@@ -282,9 +301,22 @@ Examples of ${type}s:
 ${type === 'truth'
   ? '- "What\'s the most embarrassing thing in your search history?"\n- "Who here would you least want to be stuck with?"'
   : '- "Let the other person post whatever they want on your Instagram story"\n- "Text your 5th contact something risky"'
-}
+}`;
 
-Return ONLY the ${type} text, nothing else.`
+    if (previousPrompts.length > 0) {
+      promptContent += `\n\nIMPORTANT: DO NOT repeat these recent prompts or similar themes:\n${previousPrompts.slice(0, 8).map(p => `- ${p}`).join('\n')}
+
+Make sure your new ${type} is DIFFERENT and covers NEW territory.`;
+    }
+
+    promptContent += `\n\nReturn ONLY the ${type} text, nothing else.`;
+
+    const response = await claude.messages.create({
+      model: 'claude-opus-4-5-20251101',
+      max_tokens: 100,
+      messages: [{
+        role: 'user',
+        content: promptContent
       }]
     });
 
