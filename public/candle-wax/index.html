@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>Candle Wax Physics</title>
+  <title>Candle Wax Physics 3D</title>
   <style>
     * {
       margin: 0;
@@ -13,7 +13,7 @@
 
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      background: #000;
       color: #fff;
       overflow: hidden;
       touch-action: none;
@@ -29,12 +29,16 @@
 
     #header {
       padding: 12px;
-      background: rgba(0, 0, 0, 0.3);
+      background: rgba(0, 0, 0, 0.5);
       display: flex;
       justify-content: space-between;
       align-items: center;
       flex-shrink: 0;
       z-index: 10;
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
     }
 
     #header a {
@@ -67,17 +71,10 @@
       color: #ffd700;
     }
 
-    #canvasWrapper {
-      flex: 1;
-      position: relative;
-      overflow: hidden;
-    }
-
     #gameCanvas {
       display: block;
       width: 100%;
       height: 100%;
-      background: #0f0f1e;
     }
 
     #controls {
@@ -121,26 +118,12 @@
       font-size: 14px;
       max-width: 90%;
       animation: fadeIn 0.5s;
+      z-index: 10;
     }
 
     @keyframes fadeIn {
       from { opacity: 0; transform: translateX(-50%) translateY(-10px); }
       to { opacity: 1; transform: translateX(-50%) translateY(0); }
-    }
-
-    .flame {
-      position: absolute;
-      width: 20px;
-      height: 30px;
-      background: radial-gradient(circle at 50% 100%, #ff6b00 0%, #ffd700 50%, transparent 80%);
-      border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
-      animation: flicker 0.2s infinite;
-      pointer-events: none;
-    }
-
-    @keyframes flicker {
-      0%, 100% { transform: scale(1) translateY(0); opacity: 1; }
-      50% { transform: scale(0.95) translateY(-2px); opacity: 0.9; }
     }
   </style>
 </head>
@@ -160,12 +143,11 @@
       </div>
     </div>
 
-    <div id="canvasWrapper">
-      <canvas id="gameCanvas"></canvas>
-      <div id="instructions">
-        🕯️ Tilt your device or drag to control wax flow!<br>
-        Collect wax in the containers at the bottom
-      </div>
+    <canvas id="gameCanvas"></canvas>
+
+    <div id="instructions">
+      🕯️ Drag to tilt the world in 3D!<br>
+      Collect wax in the bowls at the bottom
     </div>
 
     <div id="controls">
@@ -173,175 +155,257 @@
     </div>
   </div>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/cannon.js/0.6.2/cannon.min.js"></script>
   <script>
-    const { Engine, Render, Runner, Bodies, Composite, Events, Mouse, MouseConstraint, Vector } = Matter;
-
     // Game state
     let waxCollected = 0;
     let score = 0;
     let waxDropTimer = 0;
-    let tiltX = 0;
-    let tiltY = 0;
     let instructionsTimeout;
+    let tiltX = 0;
+    let tiltZ = 0;
 
-    // Create engine
-    const engine = Engine.create();
-    const world = engine.world;
-    world.gravity.y = 1;
+    // Three.js setup
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x0a0a15);
+    scene.fog = new THREE.Fog(0x0a0a15, 10, 50);
 
-    // Create renderer
     const canvas = document.getElementById('gameCanvas');
-    const render = Render.create({
-      canvas: canvas,
-      engine: engine,
-      options: {
-        width: window.innerWidth,
-        height: window.innerHeight - 60,
-        wireframes: false,
-        background: '#0f0f1e'
-      }
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.set(0, 8, 12);
+    camera.lookAt(0, 0, 0);
+
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+    // Lighting
+    const ambientLight = new THREE.AmbientLight(0x404040, 1);
+    scene.add(ambientLight);
+
+    const mainLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    mainLight.position.set(5, 10, 5);
+    mainLight.castShadow = true;
+    mainLight.shadow.mapSize.width = 2048;
+    mainLight.shadow.mapSize.height = 2048;
+    scene.add(mainLight);
+
+    // Warm candle glow
+    const candleLight = new THREE.PointLight(0xff9933, 2, 20);
+    candleLight.position.set(0, 4, 0);
+    scene.add(candleLight);
+
+    // Cannon.js physics world
+    const world = new CANNON.World();
+    world.gravity.set(0, -15, 0);
+    world.broadphase = new CANNON.NaiveBroadphase();
+    world.solver.iterations = 10;
+
+    // Materials
+    const waxMaterial = new CANNON.Material('wax');
+    const groundMaterial = new CANNON.Material('ground');
+    const waxGroundContact = new CANNON.ContactMaterial(waxMaterial, groundMaterial, {
+      friction: 0.4,
+      restitution: 0.3
     });
+    world.addContactMaterial(waxGroundContact);
 
-    Render.run(render);
-    const runner = Runner.create();
-    Runner.run(runner, engine);
+    // Create ground plane
+    const groundShape = new CANNON.Plane();
+    const groundBody = new CANNON.Body({ mass: 0, material: groundMaterial });
+    groundBody.addShape(groundShape);
+    groundBody.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), -Math.PI / 2);
+    groundBody.position.set(0, -3, 0);
+    world.addBody(groundBody);
 
-    // Create boundaries
-    const wallThickness = 50;
-    const ground = Bodies.rectangle(
-      window.innerWidth / 2,
-      window.innerHeight - 30,
-      window.innerWidth,
-      wallThickness,
-      {
-        isStatic: true,
-        render: { fillStyle: '#1a1a2e' }
-      }
+    const groundGeometry = new THREE.PlaneGeometry(30, 30);
+    const groundMesh = new THREE.Mesh(
+      groundGeometry,
+      new THREE.MeshStandardMaterial({ color: 0x1a1a2e, roughness: 0.8 })
     );
+    groundMesh.rotation.x = -Math.PI / 2;
+    groundMesh.position.y = -3;
+    groundMesh.receiveShadow = true;
+    scene.add(groundMesh);
 
-    const leftWall = Bodies.rectangle(
-      0,
-      window.innerHeight / 2,
-      wallThickness,
-      window.innerHeight,
-      {
-        isStatic: true,
-        render: { fillStyle: '#1a1a2e' }
-      }
-    );
+    // Create walls to contain wax
+    const wallThickness = 1;
+    const wallHeight = 10;
+    const wallDistance = 10;
 
-    const rightWall = Bodies.rectangle(
-      window.innerWidth,
-      window.innerHeight / 2,
-      wallThickness,
-      window.innerHeight,
-      {
-        isStatic: true,
-        render: { fillStyle: '#1a1a2e' }
-      }
-    );
+    function createWall(x, z, width, depth) {
+      const shape = new CANNON.Box(new CANNON.Vec3(width / 2, wallHeight / 2, depth / 2));
+      const body = new CANNON.Body({ mass: 0, material: groundMaterial });
+      body.addShape(shape);
+      body.position.set(x, wallHeight / 2 - 3, z);
+      world.addBody(body);
 
-    Composite.add(world, [ground, leftWall, rightWall]);
-
-    // Create candle
-    const candleWidth = 60;
-    const candleHeight = 120;
-    const candleX = window.innerWidth / 2;
-    const candleY = 200;
-
-    const candle = Bodies.rectangle(candleX, candleY, candleWidth, candleHeight, {
-      isStatic: true,
-      render: {
-        fillStyle: '#f4e4c1'
-      }
-    });
-
-    // Create wick (small rectangle on top)
-    const wick = Bodies.rectangle(candleX, candleY - candleHeight / 2 - 10, 4, 20, {
-      isStatic: true,
-      render: {
-        fillStyle: '#3a3a3a'
-      }
-    });
-
-    Composite.add(world, [candle, wick]);
-
-    // Create collection containers at the bottom
-    const containerWidth = 100;
-    const containerHeight = 60;
-    const containerY = window.innerHeight - 90;
-    const spacing = window.innerWidth / 4;
-
-    const containers = [];
-    for (let i = 0; i < 3; i++) {
-      const x = spacing * (i + 0.5);
-      const container = createContainer(x, containerY, containerWidth, containerHeight);
-      containers.push({ bodies: container, x, score: (i + 1) * 100 });
+      const mesh = new THREE.Mesh(
+        new THREE.BoxGeometry(width, wallHeight, depth),
+        new THREE.MeshStandardMaterial({ color: 0x1a1a2e, transparent: true, opacity: 0.3 })
+      );
+      mesh.position.copy(body.position);
+      scene.add(mesh);
+      return { body, mesh };
     }
 
-    function createContainer(x, y, width, height) {
-      const thickness = 5;
-      const bottom = Bodies.rectangle(x, y + height / 2, width, thickness, {
-        isStatic: true,
-        render: { fillStyle: '#4a9eff' }
-      });
-      const left = Bodies.rectangle(x - width / 2, y, thickness, height, {
-        isStatic: true,
-        render: { fillStyle: '#4a9eff' }
-      });
-      const right = Bodies.rectangle(x + width / 2, y, thickness, height, {
-        isStatic: true,
-        render: { fillStyle: '#4a9eff' }
-      });
-      Composite.add(world, [bottom, left, right]);
-      return [bottom, left, right];
-    }
+    createWall(0, -wallDistance, wallDistance * 2, wallThickness); // back
+    createWall(0, wallDistance, wallDistance * 2, wallThickness); // front
+    createWall(-wallDistance, 0, wallThickness, wallDistance * 2); // left
+    createWall(wallDistance, 0, wallThickness, wallDistance * 2); // right
 
-    // Wax particle system
+    // Create 3D candle
+    const candleRadius = 0.8;
+    const candleHeight = 4;
+    const candleGeometry = new THREE.CylinderGeometry(candleRadius, candleRadius, candleHeight, 32);
+    const candleMaterial = new THREE.MeshStandardMaterial({
+      color: 0xf4e4c1,
+      roughness: 0.7
+    });
+    const candleMesh = new THREE.Mesh(candleGeometry, candleMaterial);
+    candleMesh.position.set(0, candleHeight / 2, 0);
+    candleMesh.castShadow = true;
+    scene.add(candleMesh);
+
+    // Candle wick
+    const wickGeometry = new THREE.CylinderGeometry(0.05, 0.05, 0.5, 8);
+    const wickMesh = new THREE.Mesh(
+      wickGeometry,
+      new THREE.MeshStandardMaterial({ color: 0x2a2a2a })
+    );
+    wickMesh.position.set(0, candleHeight + 0.25, 0);
+    scene.add(wickMesh);
+
+    // Flame (animated sprite-like effect)
+    const flameGeometry = new THREE.SphereGeometry(0.2, 8, 8);
+    const flameMaterial = new THREE.MeshBasicMaterial({
+      color: 0xffaa00,
+      transparent: true,
+      opacity: 0.8
+    });
+    const flameMesh = new THREE.Mesh(flameGeometry, flameMaterial);
+    flameMesh.position.set(0, candleHeight + 0.6, 0);
+    scene.add(flameMesh);
+
+    // Flame glow
+    const flameGlow = new THREE.PointLight(0xff6600, 1.5, 5);
+    flameGlow.position.copy(flameMesh.position);
+    scene.add(flameGlow);
+
+    // Create collection bowls
+    const bowls = [];
+    const bowlPositions = [
+      { x: -4, z: 0, score: 100, color: 0x4a9eff },
+      { x: 0, z: 4, score: 200, color: 0xff4a9e },
+      { x: 4, z: 0, score: 300, color: 0x9eff4a }
+    ];
+
+    bowlPositions.forEach(pos => {
+      // Bowl physics (cylinder)
+      const bowlRadius = 1.2;
+      const bowlHeight = 0.5;
+      const shape = new CANNON.Cylinder(bowlRadius, bowlRadius, bowlHeight, 16);
+      const body = new CANNON.Body({ mass: 0, material: groundMaterial });
+      body.addShape(shape);
+      body.position.set(pos.x, -3 + bowlHeight / 2, pos.z);
+      world.addBody(body);
+
+      // Bowl visual
+      const bowlGeometry = new THREE.CylinderGeometry(bowlRadius, bowlRadius * 0.8, bowlHeight, 16);
+      const bowlMesh = new THREE.Mesh(
+        bowlGeometry,
+        new THREE.MeshStandardMaterial({
+          color: pos.color,
+          roughness: 0.5,
+          metalness: 0.3,
+          transparent: true,
+          opacity: 0.6
+        })
+      );
+      bowlMesh.position.copy(body.position);
+      bowlMesh.receiveShadow = true;
+      scene.add(bowlMesh);
+
+      bowls.push({ body, mesh: bowlMesh, ...pos });
+    });
+
+    // Wax particles
     const waxParticles = [];
 
     function createWaxDrop() {
-      const wax = Bodies.circle(
-        candleX + (Math.random() - 0.5) * 20,
-        candleY - candleHeight / 2 - 20,
-        4 + Math.random() * 3,
-        {
-          restitution: 0.3,
-          friction: 0.5,
-          density: 0.001,
-          render: {
-            fillStyle: `hsl(${40 + Math.random() * 20}, 100%, ${60 + Math.random() * 20}%)`
-          }
-        }
-      );
-      waxParticles.push(wax);
-      Composite.add(world, wax);
+      const radius = 0.1 + Math.random() * 0.1;
 
-      // Remove old particles if too many
-      if (waxParticles.length > 200) {
+      // Physics body
+      const shape = new CANNON.Sphere(radius);
+      const body = new CANNON.Body({
+        mass: 0.5,
+        material: waxMaterial,
+        linearDamping: 0.3
+      });
+      body.addShape(shape);
+      body.position.set(
+        (Math.random() - 0.5) * 0.5,
+        candleHeight + 0.3,
+        (Math.random() - 0.5) * 0.5
+      );
+      world.addBody(body);
+
+      // Visual mesh
+      const geometry = new THREE.SphereGeometry(radius, 8, 8);
+      const material = new THREE.MeshStandardMaterial({
+        color: new THREE.Color().setHSL(0.11 + Math.random() * 0.05, 1, 0.6 + Math.random() * 0.1),
+        roughness: 0.6,
+        metalness: 0.2
+      });
+      const mesh = new THREE.Mesh(geometry, material);
+      mesh.castShadow = true;
+      mesh.position.copy(body.position);
+      scene.add(mesh);
+
+      const particle = { body, mesh, collected: false, age: 0 };
+      waxParticles.push(particle);
+
+      // Remove old particles
+      if (waxParticles.length > 300) {
         const removed = waxParticles.shift();
-        Composite.remove(world, removed);
+        world.removeBody(removed.body);
+        scene.remove(removed.mesh);
       }
+
+      return particle;
     }
 
-    // Mouse/Touch control for tilting
-    const mouse = Mouse.create(canvas);
-    let lastMouseX = window.innerWidth / 2;
-    let lastMouseY = window.innerHeight / 2;
+    // Touch/Mouse controls for tilting
     let isDragging = false;
+    let previousMouseX = 0;
+    let previousMouseY = 0;
 
-    canvas.addEventListener('mousedown', () => isDragging = true);
-    canvas.addEventListener('touchstart', () => isDragging = true);
+    canvas.addEventListener('mousedown', (e) => {
+      isDragging = true;
+      previousMouseX = e.clientX;
+      previousMouseY = e.clientY;
+    });
+
+    canvas.addEventListener('touchstart', (e) => {
+      isDragging = true;
+      previousMouseX = e.touches[0].clientX;
+      previousMouseY = e.touches[0].clientY;
+    });
+
     canvas.addEventListener('mouseup', () => isDragging = false);
     canvas.addEventListener('touchend', () => isDragging = false);
     canvas.addEventListener('mouseleave', () => isDragging = false);
 
     canvas.addEventListener('mousemove', (e) => {
       if (isDragging) {
-        const deltaX = e.clientX - lastMouseX;
-        tiltX = Math.max(-5, Math.min(5, deltaX * 0.1));
-        lastMouseX = e.clientX;
+        const deltaX = e.clientX - previousMouseX;
+        const deltaY = e.clientY - previousMouseY;
+        tiltX = Math.max(-3, Math.min(3, deltaX * 0.05));
+        tiltZ = Math.max(-3, Math.min(3, deltaY * 0.05));
+        previousMouseX = e.clientX;
+        previousMouseY = e.clientY;
         hideInstructions();
       }
     });
@@ -349,18 +413,22 @@
     canvas.addEventListener('touchmove', (e) => {
       if (isDragging && e.touches.length > 0) {
         const touch = e.touches[0];
-        const deltaX = touch.clientX - lastMouseX;
-        tiltX = Math.max(-5, Math.min(5, deltaX * 0.1));
-        lastMouseX = touch.clientX;
+        const deltaX = touch.clientX - previousMouseX;
+        const deltaY = touch.clientY - previousMouseY;
+        tiltX = Math.max(-3, Math.min(3, deltaX * 0.05));
+        tiltZ = Math.max(-3, Math.min(3, deltaY * 0.05));
+        previousMouseX = touch.clientX;
+        previousMouseY = touch.clientY;
         hideInstructions();
       }
     });
 
-    // Device orientation (for mobile tilt)
+    // Device orientation for mobile tilt
     if (window.DeviceOrientationEvent) {
       window.addEventListener('deviceorientation', (e) => {
-        if (e.gamma !== null) {
-          tiltX = Math.max(-5, Math.min(5, e.gamma * 0.1));
+        if (e.gamma !== null && e.beta !== null) {
+          tiltX = Math.max(-3, Math.min(3, e.gamma * 0.05));
+          tiltZ = Math.max(-3, Math.min(3, (e.beta - 45) * 0.05));
           hideInstructions();
         }
       });
@@ -375,59 +443,85 @@
       }
     }
 
-    // Game loop
-    Events.on(engine, 'beforeUpdate', () => {
-      // Apply tilt to gravity
-      world.gravity.x = tiltX * 0.1;
-
-      // Gradually return tilt to center
-      tiltX *= 0.95;
-
-      // Drop wax periodically
-      waxDropTimer++;
-      if (waxDropTimer > 10) {
-        createWaxDrop();
-        waxDropTimer = 0;
-      }
-
-      // Check for wax in containers
-      waxParticles.forEach(wax => {
-        containers.forEach(container => {
-          const inContainer = wax.position.x > container.x - 50 &&
-                             wax.position.x < container.x + 50 &&
-                             wax.position.y > containerY - 30 &&
-                             wax.position.y < containerY + 30;
-
-          if (inContainer && !wax.collected) {
-            wax.collected = true;
-            waxCollected++;
-            score += container.score;
-            updateUI();
-
-            // Change color to show it's collected
-            wax.render.fillStyle = '#4a9eff';
-          }
-        });
-      });
-    });
-
     function updateUI() {
       document.getElementById('waxCount').textContent = waxCollected;
       document.getElementById('score').textContent = score;
     }
 
+    // Animation loop
+    const timeStep = 1 / 60;
+    function animate() {
+      requestAnimationFrame(animate);
+
+      // Update physics
+      world.step(timeStep);
+
+      // Apply tilt to gravity
+      world.gravity.x = tiltX;
+      world.gravity.z = -tiltZ;
+
+      // Decay tilt
+      tiltX *= 0.95;
+      tiltZ *= 0.95;
+
+      // Animate flame
+      const time = Date.now() * 0.005;
+      flameMesh.scale.y = 1 + Math.sin(time * 5) * 0.1;
+      flameMesh.position.y = candleHeight + 0.6 + Math.sin(time * 3) * 0.05;
+      flameGlow.position.copy(flameMesh.position);
+      flameGlow.intensity = 1.5 + Math.sin(time * 4) * 0.3;
+
+      // Drop wax
+      waxDropTimer++;
+      if (waxDropTimer > 8) {
+        createWaxDrop();
+        waxDropTimer = 0;
+      }
+
+      // Update wax particles
+      waxParticles.forEach((particle, index) => {
+        particle.mesh.position.copy(particle.body.position);
+        particle.mesh.quaternion.copy(particle.body.quaternion);
+        particle.age++;
+
+        // Check if in bowl
+        if (!particle.collected) {
+          bowls.forEach(bowl => {
+            const dx = particle.body.position.x - bowl.x;
+            const dz = particle.body.position.z - bowl.z;
+            const distance = Math.sqrt(dx * dx + dz * dz);
+
+            if (distance < 1.2 && particle.body.position.y < -2) {
+              particle.collected = true;
+              waxCollected++;
+              score += bowl.score;
+              updateUI();
+
+              // Change color
+              particle.mesh.material.color.setHex(bowl.color);
+              particle.mesh.material.emissive = new THREE.Color(bowl.color);
+              particle.mesh.material.emissiveIntensity = 0.3;
+            }
+          });
+        }
+      });
+
+      renderer.render(scene, camera);
+    }
+
+    animate();
+
     // Reset button
     document.getElementById('resetBtn').addEventListener('click', () => {
-      // Remove all wax particles
-      waxParticles.forEach(wax => Composite.remove(world, wax));
+      waxParticles.forEach(particle => {
+        world.removeBody(particle.body);
+        scene.remove(particle.mesh);
+      });
       waxParticles.length = 0;
-
-      // Reset counters
       waxCollected = 0;
       score = 0;
       updateUI();
 
-      // Show instructions again
       const instructions = document.getElementById('instructions');
       instructions.style.display = 'block';
       clearTimeout(instructionsTimeout);
@@ -436,13 +530,12 @@
 
     // Handle window resize
     window.addEventListener('resize', () => {
-      render.canvas.width = window.innerWidth;
-      render.canvas.height = window.innerHeight - 60;
-      render.options.width = window.innerWidth;
-      render.options.height = window.innerHeight - 60;
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
     });
 
-    // Save score when leaving (optional)
+    // Save score when leaving
     window.addEventListener('beforeunload', async () => {
       if (score > 0) {
         try {
