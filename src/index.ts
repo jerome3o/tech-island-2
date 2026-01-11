@@ -3,7 +3,7 @@ import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
 import { secureHeaders } from 'hono/secure-headers';
 
-import type { AppContext } from './types';
+import type { AppContext, Env } from './types';
 import { authMiddleware } from './lib/auth';
 import { claudeMiddleware } from './lib/claude';
 import { ensureUser } from './lib/db';
@@ -163,4 +163,52 @@ app.onError((err, c) => {
   return c.json({ error: 'Internal server error' }, 500);
 });
 
-export default app;
+// ============================================
+// Scheduled events (cron jobs)
+// ============================================
+
+export default {
+  fetch: app.fetch,
+  async scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionContext) {
+    // Clean up abandoned Boggle games
+    const now = Date.now();
+    const tenMinutesAgo = now - (10 * 60 * 1000); // 10 minutes in milliseconds
+
+    try {
+      // Clean up lobby games older than 10 minutes
+      const lobbyCleanup = await env.DB.prepare(`
+        DELETE FROM boggle_games
+        WHERE state = 'lobby'
+          AND created_at < ?
+      `).bind(tenMinutesAgo).run();
+
+      // Clean up playing games that are way past their time limit (2x timer duration)
+      // This is a safety net in case the state endpoint didn't finish them
+      const playingGamesResult = await env.DB.prepare(`
+        SELECT id, start_time, timer_seconds
+        FROM boggle_games
+        WHERE state = 'playing'
+          AND start_time IS NOT NULL
+      `).all();
+
+      let playingCleanupCount = 0;
+      for (const game of playingGamesResult.results as any[]) {
+        const elapsed = now - game.start_time;
+        const maxTime = game.timer_seconds * 1000 * 2; // 2x the timer
+
+        if (elapsed > maxTime) {
+          await env.DB.prepare(`
+            UPDATE boggle_games
+            SET state = 'finished'
+            WHERE id = ?
+          `).bind(game.id).run();
+          playingCleanupCount++;
+        }
+      }
+
+      console.log(`[Cron] Cleaned up ${lobbyCleanup.meta.changes} lobby games and ${playingCleanupCount} playing games`);
+    } catch (error) {
+      console.error('[Cron] Error cleaning up Boggle games:', error);
+    }
+  }
+};
