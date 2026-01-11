@@ -32,3 +32,7 @@ enabled = true
 [observability.logs]
 invocation_logs = true
 head_sampling_rate = 1
+
+# Cron triggers for scheduled tasks
+[triggers]
+crons = ["0 * * * *"]  # Run every hour at minute 0
