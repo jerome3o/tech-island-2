@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Candle Wax Physics</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      color: #fff;
+      overflow: hidden;
+      touch-action: none;
+    }
+
+    #gameContainer {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    #header {
+      padding: 12px;
+      background: rgba(0, 0, 0, 0.3);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-shrink: 0;
+      z-index: 10;
+    }
+
+    #header a {
+      color: #fff;
+      text-decoration: none;
+      font-size: 24px;
+    }
+
+    #stats {
+      display: flex;
+      gap: 16px;
+      font-size: 14px;
+    }
+
+    #stats div {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    #stats .label {
+      font-size: 10px;
+      opacity: 0.7;
+      text-transform: uppercase;
+    }
+
+    #stats .value {
+      font-size: 18px;
+      font-weight: bold;
+      color: #ffd700;
+    }
+
+    #canvasWrapper {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+    }
+
+    #gameCanvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      background: #0f0f1e;
+    }
+
+    #controls {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 12px;
+      z-index: 10;
+    }
+
+    .btn {
+      padding: 12px 24px;
+      background: rgba(255, 255, 255, 0.1);
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-radius: 12px;
+      color: #fff;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      backdrop-filter: blur(10px);
+      transition: all 0.2s;
+      touch-action: manipulation;
+    }
+
+    .btn:active {
+      transform: scale(0.95);
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    #instructions {
+      position: absolute;
+      top: 80px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.8);
+      padding: 16px 24px;
+      border-radius: 12px;
+      text-align: center;
+      font-size: 14px;
+      max-width: 90%;
+      animation: fadeIn 0.5s;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateX(-50%) translateY(-10px); }
+      to { opacity: 1; transform: translateX(-50%) translateY(0); }
+    }
+
+    .flame {
+      position: absolute;
+      width: 20px;
+      height: 30px;
+      background: radial-gradient(circle at 50% 100%, #ff6b00 0%, #ffd700 50%, transparent 80%);
+      border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+      animation: flicker 0.2s infinite;
+      pointer-events: none;
+    }
+
+    @keyframes flicker {
+      0%, 100% { transform: scale(1) translateY(0); opacity: 1; }
+      50% { transform: scale(0.95) translateY(-2px); opacity: 0.9; }
+    }
+  </style>
+</head>
+<body>
+  <div id="gameContainer">
+    <div id="header">
+      <a href="/">←</a>
+      <div id="stats">
+        <div>
+          <div class="label">Wax</div>
+          <div class="value" id="waxCount">0</div>
+        </div>
+        <div>
+          <div class="label">Score</div>
+          <div class="value" id="score">0</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="canvasWrapper">
+      <canvas id="gameCanvas"></canvas>
+      <div id="instructions">
+        🕯️ Tilt your device or drag to control wax flow!<br>
+        Collect wax in the containers at the bottom
+      </div>
+    </div>
+
+    <div id="controls">
+      <button class="btn" id="resetBtn">Reset</button>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+  <script>
+    const { Engine, Render, Runner, Bodies, Composite, Events, Mouse, MouseConstraint, Vector } = Matter;
+
+    // Game state
+    let waxCollected = 0;
+    let score = 0;
+    let waxDropTimer = 0;
+    let tiltX = 0;
+    let tiltY = 0;
+    let instructionsTimeout;
+
+    // Create engine
+    const engine = Engine.create();
+    const world = engine.world;
+    world.gravity.y = 1;
+
+    // Create renderer
+    const canvas = document.getElementById('gameCanvas');
+    const render = Render.create({
+      canvas: canvas,
+      engine: engine,
+      options: {
+        width: window.innerWidth,
+        height: window.innerHeight - 60,
+        wireframes: false,
+        background: '#0f0f1e'
+      }
+    });
+
+    Render.run(render);
+    const runner = Runner.create();
+    Runner.run(runner, engine);
+
+    // Create boundaries
+    const wallThickness = 50;
+    const ground = Bodies.rectangle(
+      window.innerWidth / 2,
+      window.innerHeight - 30,
+      window.innerWidth,
+      wallThickness,
+      {
+        isStatic: true,
+        render: { fillStyle: '#1a1a2e' }
+      }
+    );
+
+    const leftWall = Bodies.rectangle(
+      0,
+      window.innerHeight / 2,
+      wallThickness,
+      window.innerHeight,
+      {
+        isStatic: true,
+        render: { fillStyle: '#1a1a2e' }
+      }
+    );
+
+    const rightWall = Bodies.rectangle(
+      window.innerWidth,
+      window.innerHeight / 2,
+      wallThickness,
+      window.innerHeight,
+      {
+        isStatic: true,
+        render: { fillStyle: '#1a1a2e' }
+      }
+    );
+
+    Composite.add(world, [ground, leftWall, rightWall]);
+
+    // Create candle
+    const candleWidth = 60;
+    const candleHeight = 120;
+    const candleX = window.innerWidth / 2;
+    const candleY = 200;
+
+    const candle = Bodies.rectangle(candleX, candleY, candleWidth, candleHeight, {
+      isStatic: true,
+      render: {
+        fillStyle: '#f4e4c1'
+      }
+    });
+
+    // Create wick (small rectangle on top)
+    const wick = Bodies.rectangle(candleX, candleY - candleHeight / 2 - 10, 4, 20, {
+      isStatic: true,
+      render: {
+        fillStyle: '#3a3a3a'
+      }
+    });
+
+    Composite.add(world, [candle, wick]);
+
+    // Create collection containers at the bottom
+    const containerWidth = 100;
+    const containerHeight = 60;
+    const containerY = window.innerHeight - 90;
+    const spacing = window.innerWidth / 4;
+
+    const containers = [];
+    for (let i = 0; i < 3; i++) {
+      const x = spacing * (i + 0.5);
+      const container = createContainer(x, containerY, containerWidth, containerHeight);
+      containers.push({ bodies: container, x, score: (i + 1) * 100 });
+    }
+
+    function createContainer(x, y, width, height) {
+      const thickness = 5;
+      const bottom = Bodies.rectangle(x, y + height / 2, width, thickness, {
+        isStatic: true,
+        render: { fillStyle: '#4a9eff' }
+      });
+      const left = Bodies.rectangle(x - width / 2, y, thickness, height, {
+        isStatic: true,
+        render: { fillStyle: '#4a9eff' }
+      });
+      const right = Bodies.rectangle(x + width / 2, y, thickness, height, {
+        isStatic: true,
+        render: { fillStyle: '#4a9eff' }
+      });
+      Composite.add(world, [bottom, left, right]);
+      return [bottom, left, right];
+    }
+
+    // Wax particle system
+    const waxParticles = [];
+
+    function createWaxDrop() {
+      const wax = Bodies.circle(
+        candleX + (Math.random() - 0.5) * 20,
+        candleY - candleHeight / 2 - 20,
+        4 + Math.random() * 3,
+        {
+          restitution: 0.3,
+          friction: 0.5,
+          density: 0.001,
+          render: {
+            fillStyle: `hsl(${40 + Math.random() * 20}, 100%, ${60 + Math.random() * 20}%)`
+          }
+        }
+      );
+      waxParticles.push(wax);
+      Composite.add(world, wax);
+
+      // Remove old particles if too many
+      if (waxParticles.length > 200) {
+        const removed = waxParticles.shift();
+        Composite.remove(world, removed);
+      }
+    }
+
+    // Mouse/Touch control for tilting
+    const mouse = Mouse.create(canvas);
+    let lastMouseX = window.innerWidth / 2;
+    let lastMouseY = window.innerHeight / 2;
+    let isDragging = false;
+
+    canvas.addEventListener('mousedown', () => isDragging = true);
+    canvas.addEventListener('touchstart', () => isDragging = true);
+    canvas.addEventListener('mouseup', () => isDragging = false);
+    canvas.addEventListener('touchend', () => isDragging = false);
+    canvas.addEventListener('mouseleave', () => isDragging = false);
+
+    canvas.addEventListener('mousemove', (e) => {
+      if (isDragging) {
+        const deltaX = e.clientX - lastMouseX;
+        tiltX = Math.max(-5, Math.min(5, deltaX * 0.1));
+        lastMouseX = e.clientX;
+        hideInstructions();
+      }
+    });
+
+    canvas.addEventListener('touchmove', (e) => {
+      if (isDragging && e.touches.length > 0) {
+        const touch = e.touches[0];
+        const deltaX = touch.clientX - lastMouseX;
+        tiltX = Math.max(-5, Math.min(5, deltaX * 0.1));
+        lastMouseX = touch.clientX;
+        hideInstructions();
+      }
+    });
+
+    // Device orientation (for mobile tilt)
+    if (window.DeviceOrientationEvent) {
+      window.addEventListener('deviceorientation', (e) => {
+        if (e.gamma !== null) {
+          tiltX = Math.max(-5, Math.min(5, e.gamma * 0.1));
+          hideInstructions();
+        }
+      });
+    }
+
+    function hideInstructions() {
+      const instructions = document.getElementById('instructions');
+      if (instructions && !instructionsTimeout) {
+        instructionsTimeout = setTimeout(() => {
+          instructions.style.display = 'none';
+        }, 3000);
+      }
+    }
+
+    // Game loop
+    Events.on(engine, 'beforeUpdate', () => {
+      // Apply tilt to gravity
+      world.gravity.x = tiltX * 0.1;
+
+      // Gradually return tilt to center
+      tiltX *= 0.95;
+
+      // Drop wax periodically
+      waxDropTimer++;
+      if (waxDropTimer > 10) {
+        createWaxDrop();
+        waxDropTimer = 0;
+      }
+
+      // Check for wax in containers
+      waxParticles.forEach(wax => {
+        containers.forEach(container => {
+          const inContainer = wax.position.x > container.x - 50 &&
+                             wax.position.x < container.x + 50 &&
+                             wax.position.y > containerY - 30 &&
+                             wax.position.y < containerY + 30;
+
+          if (inContainer && !wax.collected) {
+            wax.collected = true;
+            waxCollected++;
+            score += container.score;
+            updateUI();
+
+            // Change color to show it's collected
+            wax.render.fillStyle = '#4a9eff';
+          }
+        });
+      });
+    });
+
+    function updateUI() {
+      document.getElementById('waxCount').textContent = waxCollected;
+      document.getElementById('score').textContent = score;
+    }
+
+    // Reset button
+    document.getElementById('resetBtn').addEventListener('click', () => {
+      // Remove all wax particles
+      waxParticles.forEach(wax => Composite.remove(world, wax));
+      waxParticles.length = 0;
+
+      // Reset counters
+      waxCollected = 0;
+      score = 0;
+      updateUI();
+
+      // Show instructions again
+      const instructions = document.getElementById('instructions');
+      instructions.style.display = 'block';
+      clearTimeout(instructionsTimeout);
+      instructionsTimeout = null;
+    });
+
+    // Handle window resize
+    window.addEventListener('resize', () => {
+      render.canvas.width = window.innerWidth;
+      render.canvas.height = window.innerHeight - 60;
+      render.options.width = window.innerWidth;
+      render.options.height = window.innerHeight - 60;
+    });
+
+    // Save score when leaving (optional)
+    window.addEventListener('beforeunload', async () => {
+      if (score > 0) {
+        try {
+          await fetch('/candle-wax/api/scores', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ score, waxCollected })
+          });
+        } catch (e) {
+          console.error('Failed to save score:', e);
+        }
+      }
+    });
+  </script>
+</body>
+</html>

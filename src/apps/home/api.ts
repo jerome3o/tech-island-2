@@ -14,6 +14,13 @@ app.get('/api/apps', (c) => {
       icon: '🍺'
     },
     {
+      id: 'candle-wax',
+      name: 'Candle Wax',
+      description: 'Physics game - tilt to control melting wax',
+      path: '/candle-wax',
+      icon: '🕯️'
+    },
+    {
       id: 'paint',
       name: 'Paint Studio',
       description: 'Create artwork, share it, and get AI critiques',
