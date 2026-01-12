@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Drinking Game 🍺</title>
+  <title>Party Games 🎉</title>
   <style>
     * {
       margin: 0;
@@ -343,7 +343,7 @@
 
     <header>
       <button class="settings-btn" onclick="showSettings()" title="Settings">⚙️</button>
-      <h1>🍺 Drinking Game 🍺</h1>
+      <h1>🎉 Party Games 🎉</h1>
       <p class="subtitle">Time to get this party started!</p>
       <div id="context-indicator" class="context-indicator">No AI context set</div>
     </header>
@@ -558,14 +558,14 @@
         let endpoint, body;
 
         if (useAI && groupContext) {
-          endpoint = '/drinking-game/api/generate-truth-or-dare';
+          endpoint = '/party-games/api/generate-truth-or-dare';
           body = JSON.stringify({
             context: groupContext,
             type,
             previousPrompts: promptHistory.truthOrDare || []
           });
         } else {
-          endpoint = `/drinking-game/api/truth-or-dare/${type}`;
+          endpoint = `/party-games/api/truth-or-dare/${type}`;
         }
 
         const res = await fetch(endpoint, useAI && groupContext ? {
@@ -612,7 +612,7 @@
       resultDiv.innerHTML = '<div class="loading">Claude is cooking up a roast...</div>';
 
       try {
-        const res = await fetch('/drinking-game/api/roast', {
+        const res = await fetch('/party-games/api/roast', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ targetName: name })
@@ -646,29 +646,29 @@
 
         switch(mode) {
           case 'challenge':
-            endpoint = '/drinking-game/api/generate-challenge';
+            endpoint = '/party-games/api/generate-challenge';
             break;
           case 'never':
-            endpoint = '/drinking-game/api/generate-never-have-i-ever';
+            endpoint = '/party-games/api/generate-never-have-i-ever';
             break;
           case 'rather':
-            endpoint = '/drinking-game/api/generate-would-you-rather';
+            endpoint = '/party-games/api/generate-would-you-rather';
             break;
         }
       } else {
         // Use hardcoded prompts
         switch(mode) {
           case 'challenge':
-            endpoint = '/drinking-game/api/challenge';
+            endpoint = '/party-games/api/challenge';
             break;
           case 'never':
-            endpoint = '/drinking-game/api/never-have-i-ever';
+            endpoint = '/party-games/api/never-have-i-ever';
             break;
           case 'rather':
-            endpoint = '/drinking-game/api/would-you-rather';
+            endpoint = '/party-games/api/would-you-rather';
             break;
           case 'special':
-            endpoint = '/drinking-game/api/special-challenge';
+            endpoint = '/party-games/api/special-challenge';
             break;
         }
       }
