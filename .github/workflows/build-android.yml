@@ -36,7 +36,7 @@ jobs:
             -dname "CN=Tech Island, OU=Development, O=Towerhouse, L=London, ST=London, C=UK"
 
       - name: Initialize TWA project
-        run: echo "n" | bubblewrap init --manifest twa-manifest.json --jdkPath=$JAVA_HOME
+        run: printf "n\n$JAVA_HOME\n" | bubblewrap init --manifest twa-manifest.json
 
       - name: Build APK
         run: bubblewrap build
