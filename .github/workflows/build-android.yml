@@ -1,0 +1,58 @@
+name: Build Android APK
+
+on:
+  push:
+    branches:
+      - main
+      - claude/**
+  workflow_dispatch: # Allow manual triggers
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Install Bubblewrap CLI
+        run: npm install -g @bubblewrap/cli
+
+      - name: Generate debug keystore
+        run: |
+          keytool -genkey -v -keystore android.keystore -alias android -keyalg RSA -keysize 2048 -validity 10000 \
+            -storepass android -keypass android \
+            -dname "CN=Tech Island, OU=Development, O=Towerhouse, L=London, ST=London, C=UK"
+
+      - name: Initialize TWA project
+        run: bubblewrap init --manifest twa-manifest.json
+
+      - name: Build APK
+        run: bubblewrap build
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tech-island-apk
+          path: |
+            app-release-unsigned.apk
+            app-release-signed.apk
+          retention-days: 30
+          if-no-files-found: warn
+
+      - name: Find and upload all APKs
+        run: |
+          echo "Searching for APK files..."
+          find . -name "*.apk" -type f
+        continue-on-error: true
