@@ -26,6 +26,9 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
       - name: Install Bubblewrap CLI
         run: npm install -g @bubblewrap/cli
 
@@ -35,11 +38,13 @@ jobs:
             -storepass android -keypass android \
             -dname "CN=Tech Island, OU=Development, O=Towerhouse, L=London, ST=London, C=UK"
 
-      - name: Initialize TWA project
-        run: printf "n\n$JAVA_HOME\n" | bubblewrap init --manifest twa-manifest.json
-
-      - name: Build APK
-        run: bubblewrap build
+      - name: Build APK with Bubblewrap
+        env:
+          BUBBLEWRAP_KEYSTORE_PASSWORD: android
+          BUBBLEWRAP_KEY_PASSWORD: android
+        run: |
+          bubblewrap init --manifest=https://app.towerhouse.london/manifest.json
+          bubblewrap build
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
