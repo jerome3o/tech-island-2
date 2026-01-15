@@ -2,6 +2,10 @@
 
 Tech Island is available as a native Android app built using Trusted Web Activities (TWA). This wraps the PWA in a native Android container, providing better notification support and a more native experience.
 
+## First-Time Setup
+
+**Important**: Before APKs can be built, the Android project structure needs to be generated once and committed to the repository. See [ANDROID_SETUP.md](./ANDROID_SETUP.md) for detailed instructions.
+
 ## Download
 
 The Android APK is automatically built on every push to `main` via GitHub Actions.

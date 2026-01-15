@@ -10,53 +10,45 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    container:
-      image: ghcr.io/googlechromelabs/bubblewrap:latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Debug - Check Java installation
-        run: |
-          echo "JAVA_HOME: $JAVA_HOME"
-          echo "Java version:"
-          java -version
-          echo "Looking for JDK installations:"
-          find /usr -name "java" -type f 2>/dev/null | head -5
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
 
-      - name: Generate debug keystore
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Generate signing keystore
         run: |
+          cd android/app
           keytool -genkey -v -keystore android.keystore -alias android -keyalg RSA -keysize 2048 -validity 10000 \
             -storepass android -keypass android \
             -dname "CN=Tech Island, OU=Development, O=Towerhouse, L=London, ST=London, C=UK"
 
-      - name: Build APK with Bubblewrap
+      - name: Build APK with Gradle
+        working-directory: android
+        run: |
+          chmod +x ./gradlew
+          ./gradlew assembleRelease
         env:
           BUBBLEWRAP_KEYSTORE_PASSWORD: android
           BUBBLEWRAP_KEY_PASSWORD: android
-        run: |
-          # Find Java home
-          if [ -n "$JAVA_HOME" ]; then
-            JDK_PATH="$JAVA_HOME"
-          else
-            JDK_PATH=$(dirname $(dirname $(readlink -f $(which java))))
-          fi
-          echo "Using JDK at: $JDK_PATH"
-
-          # Answer JDK prompts: n (don't install), then provide JDK path
-          printf "n\n${JDK_PATH}\n" | bubblewrap init --manifest=https://app.towerhouse.london/manifest.json
-          bubblewrap build
 
       - name: Find APK files
         run: |
           echo "Searching for APK files..."
-          find . -name "*.apk" -type f
+          find android -name "*.apk" -type f
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: tech-island-apk
-          path: "**/*.apk"
+          path: "android/app/build/outputs/apk/**/*.apk"
           retention-days: 30
           if-no-files-found: warn
