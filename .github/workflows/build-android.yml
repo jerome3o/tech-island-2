@@ -10,27 +10,12 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/googlechromelabs/bubblewrap:latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Setup Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '17'
-
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Install Bubblewrap CLI
-        run: npm install -g @bubblewrap/cli
 
       - name: Generate debug keystore
         run: |
@@ -46,18 +31,15 @@ jobs:
           bubblewrap init --manifest=https://app.towerhouse.london/manifest.json
           bubblewrap build
 
+      - name: Find APK files
+        run: |
+          echo "Searching for APK files..."
+          find . -name "*.apk" -type f
+
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: tech-island-apk
-          path: |
-            app-release-unsigned.apk
-            app-release-signed.apk
+          path: "**/*.apk"
           retention-days: 30
           if-no-files-found: warn
-
-      - name: Find and upload all APKs
-        run: |
-          echo "Searching for APK files..."
-          find . -name "*.apk" -type f
-        continue-on-error: true
