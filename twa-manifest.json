@@ -1,0 +1,51 @@
+{
+  "packageId": "london.towerhouse.app",
+  "host": "app.towerhouse.london",
+  "name": "Tech Island (2)",
+  "launcherName": "Tech Island",
+  "display": "standalone",
+  "themeColor": "#4F46E5",
+  "navigationColor": "#4F46E5",
+  "navigationColorDark": "#4F46E5",
+  "navigationDividerColor": "#4F46E5",
+  "navigationDividerColorDark": "#4F46E5",
+  "backgroundColor": "#ffffff",
+  "enableNotifications": true,
+  "startUrl": "/",
+  "iconUrl": "https://app.towerhouse.london/icons/icon-512.png",
+  "maskableIconUrl": "https://app.towerhouse.london/icons/icon-512.png",
+  "monochromeIconUrl": "https://app.towerhouse.london/icons/icon-512.png",
+  "splashScreenFadeOutDuration": 300,
+  "signingKey": {
+    "path": "./android.keystore",
+    "alias": "android"
+  },
+  "appVersionName": "1.0.0",
+  "appVersionCode": 1,
+  "shortcuts": [
+    {
+      "name": "Hello World",
+      "short_name": "Hello",
+      "url": "/hello",
+      "icon": "https://app.towerhouse.london/icons/icon-192.png"
+    }
+  ],
+  "generatorApp": "bubblewrap-cli",
+  "webManifestUrl": "https://app.towerhouse.london/manifest.json",
+  "fallbackType": "customtabs",
+  "features": {
+    "locationDelegation": {
+      "enabled": false
+    },
+    "playBilling": {
+      "enabled": false
+    }
+  },
+  "alphaDependencies": {
+    "enabled": false
+  },
+  "enableSiteSettingsShortcut": true,
+  "isChromeOSOnly": false,
+  "minSdkVersion": 21,
+  "targetSdkVersion": 34
+}
