@@ -87,6 +87,14 @@
       cursor: not-allowed;
     }
 
+    button.tournament {
+      background: linear-gradient(135deg, #f59e0b, #f97316);
+    }
+
+    button.tournament:hover {
+      background: linear-gradient(135deg, #d97706, #ea580c);
+    }
+
     input {
       padding: 12px;
       border: 2px solid #ddd;
@@ -114,6 +122,11 @@
       align-items: center;
     }
 
+    .game-item.tournament-item {
+      background: linear-gradient(135deg, #fef3c7, #fde68a);
+      border: 2px solid #f59e0b;
+    }
+
     .game-info {
       flex: 1;
     }
@@ -121,6 +134,10 @@
     .game-info h3 {
       margin-bottom: 8px;
       color: #667eea;
+    }
+
+    .game-item.tournament-item .game-info h3 {
+      color: #d97706;
     }
 
     .game-meta {
@@ -362,6 +379,14 @@
       font-weight: 600;
     }
 
+    .player-tag.ready {
+      background: #10b981;
+    }
+
+    .player-tag.not-ready {
+      background: #64748b;
+    }
+
     .form-group {
       margin: 20px 0;
     }
@@ -402,6 +427,158 @@
       margin-bottom: 15px;
       color: #667eea;
     }
+
+    .tabs {
+      display: flex;
+      gap: 0;
+      margin-bottom: 20px;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 2px solid #667eea;
+    }
+
+    .tab {
+      flex: 1;
+      padding: 12px 20px;
+      background: white;
+      border: none;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: 600;
+      color: #667eea;
+      transition: all 0.2s;
+    }
+
+    .tab:hover {
+      background: #f0f0ff;
+    }
+
+    .tab.active {
+      background: #667eea;
+      color: white;
+    }
+
+    .tab.tournament-tab.active {
+      background: linear-gradient(135deg, #f59e0b, #f97316);
+    }
+
+    .tournament-banner {
+      background: linear-gradient(135deg, #fef3c7, #fde68a);
+      border: 2px solid #f59e0b;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    .tournament-banner h3 {
+      color: #d97706;
+      margin-bottom: 10px;
+    }
+
+    .tournament-banner .target {
+      font-size: 24px;
+      font-weight: bold;
+      color: #92400e;
+    }
+
+    .tournament-standings {
+      background: #fef3c7;
+      border: 2px solid #f59e0b;
+      border-radius: 12px;
+      padding: 20px;
+      margin: 20px 0;
+    }
+
+    .tournament-standings h3 {
+      color: #d97706;
+      margin-bottom: 15px;
+      text-align: center;
+    }
+
+    .standing-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px;
+      background: white;
+      border-radius: 8px;
+      margin: 8px 0;
+    }
+
+    .standing-item.leader {
+      border: 2px solid #f59e0b;
+      background: #fffbeb;
+    }
+
+    .standing-rank {
+      font-weight: bold;
+      color: #d97706;
+      width: 30px;
+    }
+
+    .standing-name {
+      flex: 1;
+      font-weight: 600;
+    }
+
+    .standing-score {
+      font-weight: bold;
+      color: #92400e;
+    }
+
+    .progress-bar {
+      background: #e5e7eb;
+      border-radius: 4px;
+      height: 8px;
+      margin-top: 5px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      background: linear-gradient(90deg, #f59e0b, #f97316);
+      height: 100%;
+      transition: width 0.3s ease;
+    }
+
+    .between-games {
+      text-align: center;
+      padding: 40px 20px;
+    }
+
+    .between-games h2 {
+      color: #667eea;
+      margin-bottom: 20px;
+    }
+
+    .ready-status {
+      font-size: 18px;
+      margin: 20px 0;
+      color: #666;
+    }
+
+    .game-summary {
+      background: #f7f7f7;
+      border-radius: 12px;
+      padding: 20px;
+      margin: 20px 0;
+    }
+
+    .game-summary h4 {
+      color: #667eea;
+      margin-bottom: 15px;
+    }
+
+    .game-result {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid #e5e7eb;
+    }
+
+    .game-result:last-child {
+      border-bottom: none;
+    }
   </style>
 </head>
 <body>
@@ -426,13 +603,28 @@
       </div>
 
       <div class="card">
-        <h2 style="margin-bottom: 20px;">Active Games</h2>
-        <div class="actions">
-          <button onclick="showCreateGame()">Create New Game</button>
-          <button onclick="loadGames()">Refresh</button>
-          <button onclick="showGameHistory()" style="background: #64748b;">📜 History</button>
+        <div class="tabs">
+          <button class="tab active" onclick="switchTab('games')">Single Games</button>
+          <button class="tab tournament-tab" onclick="switchTab('tournaments')">Tournaments</button>
         </div>
-        <div id="gamesList" class="game-list" style="margin-top: 20px;"></div>
+
+        <div id="gamesTab">
+          <div class="actions">
+            <button onclick="showCreateGame()">Create New Game</button>
+            <button onclick="loadGames()">Refresh</button>
+            <button onclick="showGameHistory()" style="background: #64748b;">📜 History</button>
+          </div>
+          <div id="gamesList" class="game-list" style="margin-top: 20px;"></div>
+        </div>
+
+        <div id="tournamentsTab" style="display: none;">
+          <div class="actions">
+            <button class="tournament" onclick="showCreateTournament()">Create Tournament</button>
+            <button onclick="loadTournaments()">Refresh</button>
+            <button onclick="showTournamentHistory()" style="background: #64748b;">📜 History</button>
+          </div>
+          <div id="tournamentsList" class="game-list" style="margin-top: 20px;"></div>
+        </div>
       </div>
     </div>
 
@@ -445,6 +637,18 @@
           <button onclick="loadGameHistory()">Refresh</button>
         </div>
         <div id="historyList" class="game-list" style="margin-top: 20px;"></div>
+      </div>
+    </div>
+
+    <!-- Tournament History View -->
+    <div id="tournamentHistoryView" class="view">
+      <div class="card">
+        <h2 style="margin-bottom: 20px;">Tournament History</h2>
+        <div class="actions">
+          <button onclick="showLobbyList()">← Back to Lobby</button>
+          <button onclick="loadTournamentHistory()">Refresh</button>
+        </div>
+        <div id="tournamentHistoryList" class="game-list" style="margin-top: 20px;"></div>
       </div>
     </div>
 
@@ -463,6 +667,25 @@
       </div>
     </div>
 
+    <!-- Create Tournament View -->
+    <div id="createTournamentView" class="view">
+      <div class="card">
+        <h2 style="margin-bottom: 20px;">Create Tournament</h2>
+        <div class="form-group">
+          <label>Target Score (first to reach wins):</label>
+          <input type="number" id="targetScoreInput" value="100" min="25" max="500" step="25">
+        </div>
+        <div class="form-group">
+          <label>Timer per game (seconds):</label>
+          <input type="number" id="tournamentTimerInput" value="120" min="30" max="600" step="30">
+        </div>
+        <div class="actions">
+          <button class="tournament" onclick="createTournament()">Create Tournament</button>
+          <button onclick="showLobbyList()">Cancel</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Game Lobby View -->
     <div id="gameLobbyView" class="view">
       <div class="card">
@@ -475,8 +698,25 @@
       </div>
     </div>
 
+    <!-- Tournament Lobby View -->
+    <div id="tournamentLobbyView" class="view">
+      <div class="card">
+        <div class="tournament-banner">
+          <h3>Tournament Lobby</h3>
+          <div class="target">First to <span id="tournamentTargetDisplay">100</span> points wins!</div>
+          <div style="margin-top: 10px; color: #92400e;">Timer: <span id="tournamentTimerDisplay">120</span>s per game</div>
+        </div>
+        <div class="players-waiting">
+          <h3>Players Joined:</h3>
+          <div id="tournamentLobbyPlayers" class="player-list"></div>
+        </div>
+        <div id="tournamentLobbyActions" class="actions"></div>
+      </div>
+    </div>
+
     <!-- Active Game View -->
     <div id="activeGameView" class="view">
+      <div id="tournamentStandingsContainer"></div>
       <div class="card">
         <div class="timer" id="timer">2:00</div>
         <div class="board" id="board"></div>
@@ -492,8 +732,29 @@
         </div>
 
         <div class="scoreboard">
-          <h2>Scoreboard</h2>
+          <h2>Game Scoreboard</h2>
           <div id="scoreboard"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Between Games View (Tournament) -->
+    <div id="betweenGamesView" class="view">
+      <div class="card">
+        <div class="tournament-banner">
+          <h3>Tournament in Progress</h3>
+          <div class="target">First to <span id="betweenTargetDisplay">100</span> points wins!</div>
+        </div>
+
+        <div class="tournament-standings" id="betweenStandings"></div>
+
+        <div class="between-games">
+          <h2>Game <span id="lastGameNumber">1</span> Complete!</h2>
+          <div id="lastGameResults" class="game-summary"></div>
+          <div class="ready-status" id="readyStatus">Waiting for players to ready up...</div>
+          <div class="actions">
+            <button id="readyButton" class="tournament" onclick="toggleReady()">Ready for Next Game</button>
+          </div>
         </div>
       </div>
     </div>
@@ -527,21 +788,73 @@
         </div>
       </div>
     </div>
+
+    <!-- Tournament Results View -->
+    <div id="tournamentResultsView" class="view">
+      <div class="card">
+        <div class="tournament-banner">
+          <h3>Tournament Complete!</h3>
+          <div id="tournamentWinnerDisplay" style="font-size: 32px; margin: 20px 0;">🏆</div>
+        </div>
+
+        <div class="tournament-standings" id="finalTournamentStandings"></div>
+
+        <div id="tournamentGamesSummary"></div>
+
+        <div class="actions">
+          <button onclick="showLobbyList(); loadTournaments();">Back to Lobby</button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <script>
     let currentGameId = null;
+    let currentTournamentId = null;
     let pollInterval = null;
     let currentUserId = null;
     let currentBoard = [];
     let selectedPath = []; // Array of tile indices
     let currentWord = '';
     let viewingPastGame = false;
+    let viewingPastTournament = false;
+    let inTournament = false;
+    let currentTab = 'games';
 
     // Initialize
     async function init() {
       await loadUserProfile();
       await loadGames();
+      await loadTournaments();
+
+      // Check URL for direct game/tournament link
+      const params = new URLSearchParams(window.location.search);
+      const gameId = params.get('game');
+      const tournamentId = params.get('tournament');
+
+      if (tournamentId) {
+        currentTournamentId = tournamentId;
+        inTournament = true;
+        startTournamentPolling();
+      } else if (gameId) {
+        currentGameId = gameId;
+        joinGameLobby(gameId);
+      }
+    }
+
+    // Switch tabs
+    function switchTab(tab) {
+      currentTab = tab;
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      if (tab === 'games') {
+        document.querySelector('.tab:first-child').classList.add('active');
+        document.getElementById('gamesTab').style.display = 'block';
+        document.getElementById('tournamentsTab').style.display = 'none';
+      } else {
+        document.querySelector('.tab.tournament-tab').classList.add('active');
+        document.getElementById('gamesTab').style.display = 'none';
+        document.getElementById('tournamentsTab').style.display = 'block';
+      }
     }
 
     // Load user profile
@@ -600,7 +913,8 @@
     function getDisplayName(player) {
       if (player.alias) return player.alias;
       if (player.email) return player.email.split('@')[0];
-      return player.user_id.substring(0, 8);
+      if (player.user_id) return player.user_id.substring(0, 8);
+      return 'Unknown';
     }
 
     // Get adjacent tile positions (for 4x4 board)
@@ -717,16 +1031,33 @@
     function showLobbyList() {
       showView('lobbyListView');
       stopPolling();
+      currentGameId = null;
+      currentTournamentId = null;
+      inTournament = false;
+      viewingPastGame = false;
+      viewingPastTournament = false;
+      // Clear URL params
+      window.history.replaceState({}, '', '/boggle/');
     }
 
     function showCreateGame() {
       showView('createGameView');
     }
 
+    function showCreateTournament() {
+      showView('createTournamentView');
+    }
+
     function showGameHistory() {
       showView('gameHistoryView');
       stopPolling();
       loadGameHistory();
+    }
+
+    function showTournamentHistory() {
+      showView('tournamentHistoryView');
+      stopPolling();
+      loadTournamentHistory();
     }
 
     // Load game history
@@ -770,6 +1101,51 @@
       }
     }
 
+    // Load tournament history
+    async function loadTournamentHistory() {
+      try {
+        const response = await fetch('/boggle/api/tournament-history');
+        const data = await response.json();
+
+        const historyList = document.getElementById('tournamentHistoryList');
+
+        if (data.tournaments.length === 0) {
+          historyList.innerHTML = `
+            <div class="empty-state">
+              <h3>No Tournament History</h3>
+              <p>Play some tournaments to see your history here!</p>
+            </div>
+          `;
+          return;
+        }
+
+        historyList.innerHTML = data.tournaments.map(tournament => {
+          const date = new Date(tournament.created_at);
+          const winnerName = tournament.winner ? getDisplayName(tournament.winner) : 'Unknown';
+          const winnerScore = tournament.winner ? tournament.winner.total_score : 0;
+
+          return `
+            <div class="game-item tournament-item">
+              <div class="game-info">
+                <h3>${date.toLocaleDateString()} ${date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</h3>
+                <div class="game-meta">
+                  ${tournament.player_count} player${tournament.player_count !== 1 ? 's' : ''} •
+                  ${tournament.games_played} game${tournament.games_played !== 1 ? 's' : ''} •
+                  Target: ${tournament.target_score} pts
+                </div>
+                <div class="game-meta">
+                  Winner: ${winnerName} (${winnerScore} pts)
+                </div>
+              </div>
+              <button class="tournament" onclick="viewPastTournament('${tournament.id}')">View Details</button>
+            </div>
+          `;
+        }).join('');
+      } catch (error) {
+        console.error('Failed to load tournament history:', error);
+      }
+    }
+
     // View a past game
     async function viewPastGame(gameId) {
       try {
@@ -784,6 +1160,22 @@
         console.error('Failed to load past game:', error);
         alert('Failed to load game details');
         viewingPastGame = false;
+      }
+    }
+
+    // View a past tournament
+    async function viewPastTournament(tournamentId) {
+      try {
+        viewingPastTournament = true;
+        currentTournamentId = tournamentId;
+        const response = await fetch(`/boggle/api/tournaments/${tournamentId}/summary`);
+        const data = await response.json();
+
+        updateTournamentResultsView(data);
+      } catch (error) {
+        console.error('Failed to load past tournament:', error);
+        alert('Failed to load tournament details');
+        viewingPastTournament = false;
       }
     }
 
@@ -825,6 +1217,47 @@
       }
     }
 
+    // Load tournaments list
+    async function loadTournaments() {
+      try {
+        const response = await fetch('/boggle/api/tournaments');
+        const data = await response.json();
+
+        const tournamentsList = document.getElementById('tournamentsList');
+
+        if (data.tournaments.length === 0) {
+          tournamentsList.innerHTML = `
+            <div class="empty-state">
+              <h3>No Active Tournaments</h3>
+              <p>Create a tournament to play a series of games!</p>
+            </div>
+          `;
+          return;
+        }
+
+        tournamentsList.innerHTML = data.tournaments.map(tournament => `
+          <div class="game-item tournament-item">
+            <div class="game-info">
+              <h3>Tournament ${tournament.id.split('_')[1]}</h3>
+              <div class="game-meta">
+                ${tournament.player_count} player${tournament.player_count !== 1 ? 's' : ''} •
+                First to ${tournament.target_score} pts •
+                ${tournament.timer_seconds}s per game
+              </div>
+              <div class="game-meta">
+                ${tournament.state === 'lobby' ? 'Waiting to start' : 'In progress'}
+              </div>
+            </div>
+            <button class="tournament" onclick="joinTournament('${tournament.id}')">
+              ${tournament.state === 'lobby' ? 'Join' : 'Watch'}
+            </button>
+          </div>
+        `).join('');
+      } catch (error) {
+        console.error('Failed to load tournaments:', error);
+      }
+    }
+
     // Create game
     async function createGame() {
       const timerSeconds = parseInt(document.getElementById('timerInput').value);
@@ -842,6 +1275,28 @@
       } catch (error) {
         console.error('Failed to create game:', error);
         alert('Failed to create game');
+      }
+    }
+
+    // Create tournament
+    async function createTournament() {
+      const targetScore = parseInt(document.getElementById('targetScoreInput').value);
+      const timerSeconds = parseInt(document.getElementById('tournamentTimerInput').value);
+
+      try {
+        const response = await fetch('/boggle/api/tournaments', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ targetScore, timerSeconds })
+        });
+
+        const data = await response.json();
+        currentTournamentId = data.tournamentId;
+        inTournament = true;
+        joinTournamentLobby(data.tournamentId);
+      } catch (error) {
+        console.error('Failed to create tournament:', error);
+        alert('Failed to create tournament');
       }
     }
 
@@ -866,11 +1321,40 @@
       }
     }
 
+    // Join tournament
+    async function joinTournament(tournamentId) {
+      try {
+        const response = await fetch(`/boggle/api/tournaments/${tournamentId}/join`, {
+          method: 'POST'
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          alert(error.error || 'Failed to join tournament');
+          return;
+        }
+
+        currentTournamentId = tournamentId;
+        inTournament = true;
+        joinTournamentLobby(tournamentId);
+      } catch (error) {
+        console.error('Failed to join tournament:', error);
+        alert('Failed to join tournament');
+      }
+    }
+
     // Join game lobby
     function joinGameLobby(gameId) {
       viewingPastGame = false;
       showView('gameLobbyView');
       startPolling();
+    }
+
+    // Join tournament lobby
+    function joinTournamentLobby(tournamentId) {
+      viewingPastTournament = false;
+      showView('tournamentLobbyView');
+      startTournamentPolling();
     }
 
     // Start game
@@ -881,6 +1365,17 @@
         });
       } catch (error) {
         console.error('Failed to start game:', error);
+      }
+    }
+
+    // Start tournament
+    async function startTournament() {
+      try {
+        await fetch(`/boggle/api/tournaments/${currentTournamentId}/start`, {
+          method: 'POST'
+        });
+      } catch (error) {
+        console.error('Failed to start tournament:', error);
       }
     }
 
@@ -895,6 +1390,43 @@
         loadGames();
       } catch (error) {
         console.error('Failed to leave game:', error);
+      }
+    }
+
+    // Leave tournament
+    async function leaveTournament() {
+      try {
+        await fetch(`/boggle/api/tournaments/${currentTournamentId}/leave`, {
+          method: 'POST'
+        });
+        currentTournamentId = null;
+        inTournament = false;
+        showLobbyList();
+        loadTournaments();
+      } catch (error) {
+        console.error('Failed to leave tournament:', error);
+      }
+    }
+
+    // Toggle ready status
+    async function toggleReady() {
+      try {
+        const response = await fetch(`/boggle/api/tournaments/${currentTournamentId}/ready`, {
+          method: 'POST'
+        });
+        const data = await response.json();
+
+        // Update button text immediately for feedback
+        const btn = document.getElementById('readyButton');
+        if (data.ready) {
+          btn.textContent = 'Not Ready';
+          btn.style.background = '#64748b';
+        } else {
+          btn.textContent = 'Ready for Next Game';
+          btn.style.background = '';
+        }
+      } catch (error) {
+        console.error('Failed to toggle ready:', error);
       }
     }
 
@@ -941,8 +1473,6 @@
         const data = await response.json();
 
         if (!currentUserId && data.players && data.players.length > 0) {
-          // Try to determine current user (this is a simplification)
-          // In a real app, you'd get this from auth
           currentUserId = data.players[0].user_id;
         }
 
@@ -951,10 +1481,42 @@
         } else if (data.game.state === 'playing') {
           updateGameView(data);
         } else if (data.game.state === 'finished') {
+          if (inTournament) {
+            // Don't show results view for tournament games, let tournament polling handle it
+            return;
+          }
           updateResultsView(data);
         }
       } catch (error) {
         console.error('Failed to poll game state:', error);
+      }
+    }
+
+    // Poll tournament state
+    async function pollTournamentState() {
+      if (!currentTournamentId) return;
+
+      try {
+        const response = await fetch(`/boggle/api/tournaments/${currentTournamentId}/state`);
+        const data = await response.json();
+
+        if (data.tournament.state === 'lobby') {
+          updateTournamentLobbyView(data);
+        } else if (data.tournament.state === 'active') {
+          if (data.betweenGames) {
+            updateBetweenGamesView(data);
+          } else if (data.currentGame && data.currentGame.game.state === 'playing') {
+            currentGameId = data.tournament.currentGameId;
+            updateTournamentGameView(data);
+          } else if (data.currentGame && data.currentGame.game.state === 'finished') {
+            // Game just finished, show between games
+            updateBetweenGamesView(data);
+          }
+        } else if (data.tournament.state === 'finished') {
+          updateTournamentFinishedView(data);
+        }
+      } catch (error) {
+        console.error('Failed to poll tournament state:', error);
       }
     }
 
@@ -974,11 +1536,37 @@
       `;
     }
 
+    // Update tournament lobby view
+    function updateTournamentLobbyView(data) {
+      showView('tournamentLobbyView');
+
+      document.getElementById('tournamentTargetDisplay').textContent = data.tournament.targetScore;
+      document.getElementById('tournamentTimerDisplay').textContent = data.tournament.timerSeconds;
+
+      const playersDiv = document.getElementById('tournamentLobbyPlayers');
+      const actionsDiv = document.getElementById('tournamentLobbyActions');
+
+      playersDiv.innerHTML = data.players.map(p =>
+        `<div class="player-tag">${getDisplayName(p)}</div>`
+      ).join('');
+
+      // Show start/leave buttons
+      actionsDiv.innerHTML = `
+        <button class="tournament" onclick="startTournament()">Start Tournament</button>
+        <button onclick="leaveTournament()">Leave</button>
+      `;
+    }
+
     // Update game view
     function updateGameView(data) {
       if (document.getElementById('activeGameView').classList.contains('active') === false) {
         showView('activeGameView');
         renderBoard(data.game.board);
+      }
+
+      // Clear tournament standings for non-tournament games
+      if (!inTournament) {
+        document.getElementById('tournamentStandingsContainer').innerHTML = '';
       }
 
       // Update timer
@@ -1000,6 +1588,201 @@
           <span class="player-points">${p.score} pts</span>
         </div>
       `).join('');
+    }
+
+    // Update tournament game view
+    function updateTournamentGameView(data) {
+      if (document.getElementById('activeGameView').classList.contains('active') === false) {
+        showView('activeGameView');
+        renderBoard(data.currentGame.game.board);
+      }
+
+      // Show tournament standings
+      const standingsContainer = document.getElementById('tournamentStandingsContainer');
+      const targetScore = data.tournament.targetScore;
+
+      standingsContainer.innerHTML = `
+        <div class="tournament-standings">
+          <h3>Tournament Standings (First to ${targetScore})</h3>
+          ${data.players.map((p, i) => `
+            <div class="standing-item ${i === 0 ? 'leader' : ''}">
+              <span class="standing-rank">${i + 1}.</span>
+              <span class="standing-name">${getDisplayName(p)}</span>
+              <span class="standing-score">${p.total_score} pts</span>
+            </div>
+            <div class="progress-bar">
+              <div class="progress-fill" style="width: ${Math.min(100, (p.total_score / targetScore) * 100)}%"></div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+
+      // Update game-specific UI
+      const timerDiv = document.getElementById('timer');
+      const timeRemaining = Math.ceil(data.currentGame.timeRemaining / 1000);
+      const minutes = Math.floor(timeRemaining / 60);
+      const seconds = timeRemaining % 60;
+      timerDiv.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+
+      timerDiv.classList.remove('warning', 'danger');
+      if (timeRemaining <= 30) timerDiv.classList.add('danger');
+      else if (timeRemaining <= 60) timerDiv.classList.add('warning');
+
+      // Update game scoreboard
+      const scoreboardDiv = document.getElementById('scoreboard');
+      scoreboardDiv.innerHTML = data.currentGame.players.map(p => `
+        <div class="player-score">
+          <span class="player-name">${getDisplayName(p)}</span>
+          <span class="player-points">${p.score} pts</span>
+        </div>
+      `).join('');
+    }
+
+    // Update between games view
+    function updateBetweenGamesView(data) {
+      showView('betweenGamesView');
+
+      const targetScore = data.tournament.targetScore;
+      document.getElementById('betweenTargetDisplay').textContent = targetScore;
+
+      // Show standings
+      const standingsDiv = document.getElementById('betweenStandings');
+      standingsDiv.innerHTML = `
+        <h3>Tournament Standings</h3>
+        ${data.players.map((p, i) => `
+          <div class="standing-item ${i === 0 ? 'leader' : ''}">
+            <span class="standing-rank">${i + 1}.</span>
+            <span class="standing-name">${getDisplayName(p)} ${p.ready ? '✅' : ''}</span>
+            <span class="standing-score">${p.total_score} / ${targetScore} pts</span>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill" style="width: ${Math.min(100, (p.total_score / targetScore) * 100)}%"></div>
+          </div>
+        `).join('')}
+      `;
+
+      // Show last game results
+      const gameNumber = data.games.length;
+      document.getElementById('lastGameNumber').textContent = gameNumber;
+
+      if (data.currentGame && data.currentGame.players) {
+        const lastGameResults = document.getElementById('lastGameResults');
+        lastGameResults.innerHTML = `
+          <h4>Game ${gameNumber} Results</h4>
+          ${data.currentGame.players.map(p => `
+            <div class="game-result">
+              <span>${getDisplayName(p)}</span>
+              <span>+${p.score} pts</span>
+            </div>
+          `).join('')}
+        `;
+      }
+
+      // Show ready status
+      const readyCount = data.players.filter(p => p.ready).length;
+      const totalPlayers = data.players.length;
+      document.getElementById('readyStatus').textContent =
+        `${readyCount} of ${totalPlayers} players ready`;
+
+      // Update ready button
+      const currentPlayer = data.players.find(p => p.user_id === currentUserId);
+      const btn = document.getElementById('readyButton');
+      if (currentPlayer && currentPlayer.ready) {
+        btn.textContent = 'Not Ready';
+        btn.style.background = '#64748b';
+      } else {
+        btn.textContent = 'Ready for Next Game';
+        btn.style.background = '';
+      }
+    }
+
+    // Update tournament finished view
+    function updateTournamentFinishedView(data) {
+      showView('tournamentResultsView');
+      stopPolling();
+
+      const winner = data.players[0];
+      const winnerName = winner ? getDisplayName(winner) : 'Unknown';
+
+      document.getElementById('tournamentWinnerDisplay').innerHTML =
+        `🏆 ${winnerName} wins with ${winner?.total_score || 0} points!`;
+
+      // Show final standings
+      const standingsDiv = document.getElementById('finalTournamentStandings');
+      standingsDiv.innerHTML = `
+        <h3>Final Standings</h3>
+        ${data.players.map((p, i) => {
+          const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : '';
+          return `
+            <div class="standing-item ${i === 0 ? 'leader' : ''}">
+              <span class="standing-rank">${medal || (i + 1) + '.'}</span>
+              <span class="standing-name">${getDisplayName(p)}</span>
+              <span class="standing-score">${p.total_score} pts</span>
+            </div>
+          `;
+        }).join('')}
+      `;
+
+      // Show games summary
+      const summaryDiv = document.getElementById('tournamentGamesSummary');
+      summaryDiv.innerHTML = `
+        <h3 style="margin: 20px 0 15px; color: #667eea;">Games Played (${data.games.length})</h3>
+        ${data.games.map(game => `
+          <div class="game-summary">
+            <h4>Game ${game.game_number}</h4>
+            ${(game.scores || []).map(s => `
+              <div class="game-result">
+                <span>${getDisplayName(s)}</span>
+                <span>${s.score} pts</span>
+              </div>
+            `).join('')}
+          </div>
+        `).join('')}
+      `;
+    }
+
+    // Update tournament results view (for viewing past tournaments)
+    function updateTournamentResultsView(data) {
+      showView('tournamentResultsView');
+
+      const winner = data.players[0];
+      const winnerName = winner ? getDisplayName(winner) : 'Unknown';
+
+      document.getElementById('tournamentWinnerDisplay').innerHTML =
+        `🏆 ${winnerName} wins with ${winner?.total_score || 0} points!`;
+
+      // Show final standings
+      const standingsDiv = document.getElementById('finalTournamentStandings');
+      standingsDiv.innerHTML = `
+        <h3>Final Standings</h3>
+        ${data.players.map((p, i) => {
+          const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : '';
+          return `
+            <div class="standing-item ${i === 0 ? 'leader' : ''}">
+              <span class="standing-rank">${medal || (i + 1) + '.'}</span>
+              <span class="standing-name">${getDisplayName(p)}</span>
+              <span class="standing-score">${p.total_score} pts</span>
+            </div>
+          `;
+        }).join('')}
+      `;
+
+      // Show games summary
+      const summaryDiv = document.getElementById('tournamentGamesSummary');
+      summaryDiv.innerHTML = `
+        <h3 style="margin: 20px 0 15px; color: #667eea;">Games Played (${data.games.length})</h3>
+        ${data.games.map(game => `
+          <div class="game-summary">
+            <h4>Game ${game.game_number}</h4>
+            ${(game.scores || []).map(s => `
+              <div class="game-result">
+                <span>${getDisplayName(s)}</span>
+                <span>${s.score} pts</span>
+              </div>
+            `).join('')}
+          </div>
+        `).join('')}
+      `;
     }
 
     // Render board
@@ -1100,6 +1883,12 @@
       stopPolling();
       pollGameState();
       pollInterval = setInterval(pollGameState, 1000);
+    }
+
+    function startTournamentPolling() {
+      stopPolling();
+      pollTournamentState();
+      pollInterval = setInterval(pollTournamentState, 1000);
     }
 
     function stopPolling() {

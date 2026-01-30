@@ -210,5 +210,48 @@ export default {
     } catch (error) {
       console.error('[Cron] Error cleaning up Boggle games:', error);
     }
+
+    // Clean up abandoned Boggle tournaments
+    try {
+      const oneHourAgo = now - (60 * 60 * 1000); // 1 hour in milliseconds
+
+      // Clean up lobby tournaments older than 10 minutes
+      const tournamentLobbyCleanup = await env.DB.prepare(`
+        DELETE FROM boggle_tournaments
+        WHERE state = 'lobby'
+          AND created_at < ?
+      `).bind(tenMinutesAgo).run();
+
+      // Finish active tournaments that have been abandoned (no activity for 1 hour)
+      const abandonedTournaments = await env.DB.prepare(`
+        SELECT id
+        FROM boggle_tournaments
+        WHERE state = 'active'
+          AND last_activity_at < ?
+      `).bind(oneHourAgo).all();
+
+      let tournamentFinishedCount = 0;
+      for (const tournament of abandonedTournaments.results as any[]) {
+        // Find the leader and declare them winner
+        const leader = await env.DB.prepare(`
+          SELECT user_id, total_score
+          FROM boggle_tournament_players
+          WHERE tournament_id = ?
+          ORDER BY total_score DESC
+          LIMIT 1
+        `).bind(tournament.id).first();
+
+        await env.DB.prepare(`
+          UPDATE boggle_tournaments
+          SET state = 'finished', winner_id = ?, finished_at = ?
+          WHERE id = ?
+        `).bind(leader?.user_id || null, now, tournament.id).run();
+        tournamentFinishedCount++;
+      }
+
+      console.log(`[Cron] Cleaned up ${tournamentLobbyCleanup.meta.changes} lobby tournaments and finished ${tournamentFinishedCount} abandoned tournaments`);
+    } catch (error) {
+      console.error('[Cron] Error cleaning up Boggle tournaments:', error);
+    }
   }
 };
