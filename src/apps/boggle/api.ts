@@ -131,6 +131,11 @@ function generateGameId(): string {
   return `game_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 }
 
+// Generate unique tournament ID
+function generateTournamentId(): string {
+  return `tourn_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+}
+
 // List active games (lobby or playing)
 app.get('/api/games', async (c) => {
   const db = c.env.DB;
@@ -609,6 +614,626 @@ app.get('/api/history', async (c) => {
   );
 
   return c.json({ games: gamesWithWinners });
+});
+
+// ============================================
+// Tournament API Endpoints
+// ============================================
+
+// List active tournaments (lobby or active)
+app.get('/api/tournaments', async (c) => {
+  const db = c.env.DB;
+
+  const tournaments = await db.prepare(`
+    SELECT
+      t.id,
+      t.state,
+      t.target_score,
+      t.timer_seconds,
+      t.created_at,
+      t.created_by,
+      COUNT(DISTINCT tp.user_id) as player_count
+    FROM boggle_tournaments t
+    LEFT JOIN boggle_tournament_players tp ON t.id = tp.tournament_id
+    WHERE t.state IN ('lobby', 'active')
+    GROUP BY t.id
+    ORDER BY t.created_at DESC
+    LIMIT 20
+  `).all();
+
+  return c.json({ tournaments: tournaments.results });
+});
+
+// Create new tournament
+app.post('/api/tournaments', async (c) => {
+  const db = c.env.DB;
+  const user = c.get('user');
+  const { targetScore = 100, timerSeconds = 120 } = await c.req.json();
+
+  const tournamentId = generateTournamentId();
+  const now = Date.now();
+
+  await db.batch([
+    db.prepare(`
+      INSERT INTO boggle_tournaments (id, state, target_score, timer_seconds, created_at, created_by, last_activity_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).bind(tournamentId, 'lobby', targetScore, timerSeconds, now, user.id, now),
+
+    db.prepare(`
+      INSERT INTO boggle_tournament_players (tournament_id, user_id, total_score, ready, joined_at)
+      VALUES (?, ?, 0, 0, ?)
+    `).bind(tournamentId, user.id, now),
+  ]);
+
+  return c.json({ tournamentId });
+});
+
+// Join tournament
+app.post('/api/tournaments/:id/join', async (c) => {
+  const db = c.env.DB;
+  const user = c.get('user');
+  const tournamentId = c.req.param('id');
+
+  // Check tournament exists and is in lobby
+  const tournament = await db.prepare(`
+    SELECT state FROM boggle_tournaments WHERE id = ?
+  `).bind(tournamentId).first();
+
+  if (!tournament) {
+    return c.json({ error: 'Tournament not found' }, 404);
+  }
+
+  if (tournament.state !== 'lobby') {
+    return c.json({ error: 'Tournament already started' }, 400);
+  }
+
+  // Check if already joined
+  const existing = await db.prepare(`
+    SELECT 1 FROM boggle_tournament_players WHERE tournament_id = ? AND user_id = ?
+  `).bind(tournamentId, user.id).first();
+
+  if (existing) {
+    return c.json({ message: 'Already joined' });
+  }
+
+  // Join tournament
+  await db.prepare(`
+    INSERT INTO boggle_tournament_players (tournament_id, user_id, total_score, ready, joined_at)
+    VALUES (?, ?, 0, 0, ?)
+  `).bind(tournamentId, user.id, Date.now()).run();
+
+  return c.json({ message: 'Joined successfully' });
+});
+
+// Leave tournament (lobby only)
+app.post('/api/tournaments/:id/leave', async (c) => {
+  const db = c.env.DB;
+  const user = c.get('user');
+  const tournamentId = c.req.param('id');
+
+  // Only allow leaving lobby tournaments
+  const tournament = await db.prepare(`
+    SELECT state FROM boggle_tournaments WHERE id = ?
+  `).bind(tournamentId).first();
+
+  if (!tournament) {
+    return c.json({ error: 'Tournament not found' }, 404);
+  }
+
+  if (tournament.state !== 'lobby') {
+    return c.json({ error: 'Cannot leave active tournament' }, 400);
+  }
+
+  // Remove player
+  await db.prepare(`
+    DELETE FROM boggle_tournament_players WHERE tournament_id = ? AND user_id = ?
+  `).bind(tournamentId, user.id).run();
+
+  // Check if any players left
+  const remainingPlayers = await db.prepare(`
+    SELECT COUNT(*) as count FROM boggle_tournament_players WHERE tournament_id = ?
+  `).bind(tournamentId).first();
+
+  // If no players, delete tournament
+  if (remainingPlayers && remainingPlayers.count === 0) {
+    await db.prepare(`
+      DELETE FROM boggle_tournaments WHERE id = ?
+    `).bind(tournamentId).run();
+  }
+
+  return c.json({ message: 'Left tournament' });
+});
+
+// Start tournament
+app.post('/api/tournaments/:id/start', async (c) => {
+  const db = c.env.DB;
+  const user = c.get('user');
+  const tournamentId = c.req.param('id');
+
+  // Check if user is creator
+  const tournament = await db.prepare(`
+    SELECT created_by, state, timer_seconds FROM boggle_tournaments WHERE id = ?
+  `).bind(tournamentId).first();
+
+  if (!tournament) {
+    return c.json({ error: 'Tournament not found' }, 404);
+  }
+
+  if (tournament.created_by !== user.id) {
+    return c.json({ error: 'Only creator can start tournament' }, 403);
+  }
+
+  if (tournament.state !== 'lobby') {
+    return c.json({ error: 'Tournament already started' }, 400);
+  }
+
+  // Get all players
+  const players = await db.prepare(`
+    SELECT user_id FROM boggle_tournament_players WHERE tournament_id = ?
+  `).bind(tournamentId).all();
+
+  // Create first game
+  const gameId = generateGameId();
+  const board = generateBoard();
+  const now = Date.now();
+
+  await db.batch([
+    // Create the game
+    db.prepare(`
+      INSERT INTO boggle_games (id, state, board, timer_seconds, created_at, created_by)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `).bind(gameId, 'lobby', JSON.stringify(board), tournament.timer_seconds, now, user.id),
+
+    // Add all tournament players to the game
+    ...((players.results as any[]).map(p =>
+      db.prepare(`
+        INSERT INTO boggle_players (game_id, user_id, score, joined_at)
+        VALUES (?, ?, 0, ?)
+      `).bind(gameId, p.user_id, now)
+    )),
+
+    // Link game to tournament
+    db.prepare(`
+      INSERT INTO boggle_tournament_games (tournament_id, game_id, game_number)
+      VALUES (?, ?, 1)
+    `).bind(tournamentId, gameId),
+
+    // Update tournament state
+    db.prepare(`
+      UPDATE boggle_tournaments
+      SET state = 'active', current_game_id = ?, last_activity_at = ?
+      WHERE id = ?
+    `).bind(gameId, now, tournamentId),
+
+    // Mark all players as not ready (for between-game readiness)
+    db.prepare(`
+      UPDATE boggle_tournament_players SET ready = 0 WHERE tournament_id = ?
+    `).bind(tournamentId),
+
+    // Start the game immediately
+    db.prepare(`
+      UPDATE boggle_games SET state = 'playing', start_time = ? WHERE id = ?
+    `).bind(now, gameId),
+  ]);
+
+  return c.json({ message: 'Tournament started', gameId });
+});
+
+// Get tournament state (for polling)
+app.get('/api/tournaments/:id/state', async (c) => {
+  const db = c.env.DB;
+  const tournamentId = c.req.param('id');
+  const now = Date.now();
+
+  // Get tournament info
+  const tournament = await db.prepare(`
+    SELECT * FROM boggle_tournaments WHERE id = ?
+  `).bind(tournamentId).first();
+
+  if (!tournament) {
+    return c.json({ error: 'Tournament not found' }, 404);
+  }
+
+  // Get tournament players with scores and aliases
+  const players = await db.prepare(`
+    SELECT
+      tp.user_id,
+      tp.total_score,
+      tp.ready,
+      u.alias,
+      u.email
+    FROM boggle_tournament_players tp
+    LEFT JOIN users u ON tp.user_id = u.id
+    WHERE tp.tournament_id = ?
+    ORDER BY tp.total_score DESC, tp.joined_at ASC
+  `).bind(tournamentId).all();
+
+  // Get all games in this tournament
+  const tournamentGames = await db.prepare(`
+    SELECT
+      tg.game_id,
+      tg.game_number,
+      g.state as game_state,
+      g.created_at
+    FROM boggle_tournament_games tg
+    JOIN boggle_games g ON tg.game_id = g.id
+    WHERE tg.tournament_id = ?
+    ORDER BY tg.game_number ASC
+  `).bind(tournamentId).all();
+
+  let currentGameState: any = null;
+  let betweenGames = false;
+  let needsNewGame = false;
+
+  // If tournament is active, check current game state
+  if (tournament.state === 'active' && tournament.current_game_id) {
+    // Get current game state using existing endpoint logic
+    const gameResponse = await fetch(`${c.env.APP_URL || ''}/boggle/api/games/${tournament.current_game_id}/state`, {
+      headers: c.req.raw.headers
+    });
+
+    if (gameResponse.ok) {
+      currentGameState = await gameResponse.json();
+
+      // Check if game just finished
+      if (currentGameState.game.state === 'finished') {
+        // Update player scores in tournament
+        for (const player of currentGameState.players as any[]) {
+          await db.prepare(`
+            UPDATE boggle_tournament_players
+            SET total_score = total_score + ?
+            WHERE tournament_id = ? AND user_id = ?
+          `).bind(player.score, tournamentId, player.user_id).run();
+        }
+
+        // Update last activity
+        await db.prepare(`
+          UPDATE boggle_tournaments SET last_activity_at = ? WHERE id = ?
+        `).bind(now, tournamentId).run();
+
+        // Refresh player scores
+        const updatedPlayers = await db.prepare(`
+          SELECT
+            tp.user_id,
+            tp.total_score,
+            tp.ready,
+            u.alias,
+            u.email
+          FROM boggle_tournament_players tp
+          LEFT JOIN users u ON tp.user_id = u.id
+          WHERE tp.tournament_id = ?
+          ORDER BY tp.total_score DESC, tp.joined_at ASC
+        `).bind(tournamentId).all();
+        players.results = updatedPlayers.results;
+
+        // Check if someone won
+        const leader = players.results[0] as any;
+        if (leader && leader.total_score >= (tournament.target_score as number)) {
+          // Tournament finished!
+          await db.prepare(`
+            UPDATE boggle_tournaments
+            SET state = 'finished', winner_id = ?, finished_at = ?
+            WHERE id = ? AND state = 'active'
+          `).bind(leader.user_id, now, tournamentId).run();
+          tournament.state = 'finished';
+          tournament.winner_id = leader.user_id;
+          tournament.finished_at = now;
+
+          // Send ntfy notification about tournament completion
+          const winnerName = leader.alias || leader.email?.split('@')[0] || 'Unknown';
+          const gamesPlayed = tournamentGames.results.length;
+
+          const playerScores = (players.results as any[])
+            .map((p: any, index: number) => {
+              const name = p.alias || p.email?.split('@')[0] || 'Unknown';
+              const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '  ';
+              return `${medal} ${name}: ${p.total_score} pts`;
+            })
+            .join('\n');
+
+          const message = `🏆 ${winnerName} wins the tournament with ${leader.total_score} points!\n\n` +
+                         `🎮 Games played: ${gamesPlayed}\n` +
+                         `🎯 Target score: ${tournament.target_score}\n\n` +
+                         `📊 Final Standings:\n${playerScores}`;
+
+          sendNtfyNotification(c.env, {
+            title: '🏆 Boggle Tournament Complete!',
+            message,
+            priority: 'high',
+            tags: ['tournament', 'boggle', 'winner'],
+            click: `${c.env.APP_URL}/boggle/?tournament=${tournamentId}`,
+          }).catch(err => console.error('Failed to send ntfy notification:', err));
+        } else {
+          // No winner yet, we're between games
+          betweenGames = true;
+
+          // Reset ready status for all players (they need to ready up again)
+          // But only if we haven't already done this for this game
+          const allReady = (players.results as any[]).every(p => p.ready === 1);
+          if (!allReady) {
+            // Check if all players are ready for next game
+            const readyCount = (players.results as any[]).filter(p => p.ready === 1).length;
+            const totalPlayers = players.results.length;
+
+            if (readyCount === totalPlayers && totalPlayers > 0) {
+              needsNewGame = true;
+            }
+          } else {
+            needsNewGame = true;
+          }
+        }
+      }
+    }
+  }
+
+  // Create new game if all players are ready
+  if (needsNewGame && tournament.state === 'active') {
+    const gameId = generateGameId();
+    const board = generateBoard();
+    const gameNumber = tournamentGames.results.length + 1;
+
+    const playersList = players.results as any[];
+
+    await db.batch([
+      // Create the game
+      db.prepare(`
+        INSERT INTO boggle_games (id, state, board, timer_seconds, created_at, created_by)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `).bind(gameId, 'playing', JSON.stringify(board), tournament.timer_seconds, now, tournament.created_by),
+
+      // Add all tournament players to the game
+      ...(playersList.map(p =>
+        db.prepare(`
+          INSERT INTO boggle_players (game_id, user_id, score, joined_at)
+          VALUES (?, ?, 0, ?)
+        `).bind(gameId, p.user_id, now)
+      )),
+
+      // Link game to tournament
+      db.prepare(`
+        INSERT INTO boggle_tournament_games (tournament_id, game_id, game_number)
+        VALUES (?, ?, ?)
+      `).bind(tournamentId, gameId, gameNumber),
+
+      // Update tournament
+      db.prepare(`
+        UPDATE boggle_tournaments
+        SET current_game_id = ?, last_activity_at = ?
+        WHERE id = ?
+      `).bind(gameId, now, tournamentId),
+
+      // Reset ready status
+      db.prepare(`
+        UPDATE boggle_tournament_players SET ready = 0 WHERE tournament_id = ?
+      `).bind(tournamentId),
+
+      // Start the game
+      db.prepare(`
+        UPDATE boggle_games SET start_time = ? WHERE id = ?
+      `).bind(now, gameId),
+    ]);
+
+    // Update current game state
+    tournament.current_game_id = gameId;
+    betweenGames = false;
+
+    // Fetch new game state
+    const newGameResponse = await fetch(`${c.env.APP_URL || ''}/boggle/api/games/${gameId}/state`, {
+      headers: c.req.raw.headers
+    });
+    if (newGameResponse.ok) {
+      currentGameState = await newGameResponse.json();
+    }
+
+    // Refresh tournament games list
+    const refreshedGames = await db.prepare(`
+      SELECT
+        tg.game_id,
+        tg.game_number,
+        g.state as game_state,
+        g.created_at
+      FROM boggle_tournament_games tg
+      JOIN boggle_games g ON tg.game_id = g.id
+      WHERE tg.tournament_id = ?
+      ORDER BY tg.game_number ASC
+    `).bind(tournamentId).all();
+    tournamentGames.results = refreshedGames.results;
+  }
+
+  return c.json({
+    tournament: {
+      id: tournament.id,
+      state: tournament.state,
+      targetScore: tournament.target_score,
+      timerSeconds: tournament.timer_seconds,
+      createdBy: tournament.created_by,
+      createdAt: tournament.created_at,
+      winnerId: tournament.winner_id,
+      finishedAt: tournament.finished_at,
+      currentGameId: tournament.current_game_id
+    },
+    players: players.results,
+    games: tournamentGames.results,
+    currentGame: currentGameState,
+    betweenGames
+  });
+});
+
+// Ready up for next game
+app.post('/api/tournaments/:id/ready', async (c) => {
+  const db = c.env.DB;
+  const user = c.get('user');
+  const tournamentId = c.req.param('id');
+
+  // Check tournament exists and is active
+  const tournament = await db.prepare(`
+    SELECT state FROM boggle_tournaments WHERE id = ?
+  `).bind(tournamentId).first();
+
+  if (!tournament) {
+    return c.json({ error: 'Tournament not found' }, 404);
+  }
+
+  if (tournament.state !== 'active') {
+    return c.json({ error: 'Tournament not active' }, 400);
+  }
+
+  // Check if player is in tournament
+  const player = await db.prepare(`
+    SELECT ready FROM boggle_tournament_players WHERE tournament_id = ? AND user_id = ?
+  `).bind(tournamentId, user.id).first();
+
+  if (!player) {
+    return c.json({ error: 'Not in this tournament' }, 403);
+  }
+
+  // Toggle ready status
+  const newReady = player.ready === 1 ? 0 : 1;
+  await db.prepare(`
+    UPDATE boggle_tournament_players SET ready = ? WHERE tournament_id = ? AND user_id = ?
+  `).bind(newReady, tournamentId, user.id).run();
+
+  // Update last activity
+  await db.prepare(`
+    UPDATE boggle_tournaments SET last_activity_at = ? WHERE id = ?
+  `).bind(Date.now(), tournamentId).run();
+
+  return c.json({ ready: newReady === 1 });
+});
+
+// Get tournament history for current user
+app.get('/api/tournament-history', async (c) => {
+  const db = c.env.DB;
+  const user = c.get('user');
+
+  // Get finished tournaments where user participated
+  const tournaments = await db.prepare(`
+    SELECT
+      t.id,
+      t.target_score,
+      t.timer_seconds,
+      t.created_at,
+      t.finished_at,
+      t.winner_id,
+      COUNT(DISTINCT tp.user_id) as player_count,
+      COUNT(DISTINCT tg.game_id) as games_played
+    FROM boggle_tournaments t
+    INNER JOIN boggle_tournament_players tp ON t.id = tp.tournament_id
+    LEFT JOIN boggle_tournament_games tg ON t.id = tg.tournament_id
+    WHERE t.state = 'finished'
+      AND t.id IN (
+        SELECT tournament_id FROM boggle_tournament_players WHERE user_id = ?
+      )
+    GROUP BY t.id
+    ORDER BY t.finished_at DESC
+    LIMIT 50
+  `).bind(user.id).all();
+
+  // For each tournament, get the winner info
+  const tournamentsWithWinners = await Promise.all(
+    (tournaments.results as any[]).map(async (tournament) => {
+      let winner = null;
+      if (tournament.winner_id) {
+        const winnerPlayer = await db.prepare(`
+          SELECT
+            tp.user_id,
+            tp.total_score,
+            u.alias,
+            u.email
+          FROM boggle_tournament_players tp
+          LEFT JOIN users u ON tp.user_id = u.id
+          WHERE tp.tournament_id = ? AND tp.user_id = ?
+        `).bind(tournament.id, tournament.winner_id).first();
+        winner = winnerPlayer;
+      }
+
+      return {
+        ...tournament,
+        winner
+      };
+    })
+  );
+
+  return c.json({ tournaments: tournamentsWithWinners });
+});
+
+// Get tournament summary (detailed results)
+app.get('/api/tournaments/:id/summary', async (c) => {
+  const db = c.env.DB;
+  const tournamentId = c.req.param('id');
+
+  // Get tournament info
+  const tournament = await db.prepare(`
+    SELECT * FROM boggle_tournaments WHERE id = ?
+  `).bind(tournamentId).first();
+
+  if (!tournament) {
+    return c.json({ error: 'Tournament not found' }, 404);
+  }
+
+  // Get players with final scores
+  const players = await db.prepare(`
+    SELECT
+      tp.user_id,
+      tp.total_score,
+      u.alias,
+      u.email
+    FROM boggle_tournament_players tp
+    LEFT JOIN users u ON tp.user_id = u.id
+    WHERE tp.tournament_id = ?
+    ORDER BY tp.total_score DESC, tp.joined_at ASC
+  `).bind(tournamentId).all();
+
+  // Get all games with their results
+  const games = await db.prepare(`
+    SELECT
+      tg.game_id,
+      tg.game_number,
+      g.state as game_state,
+      g.created_at,
+      g.start_time,
+      g.timer_seconds
+    FROM boggle_tournament_games tg
+    JOIN boggle_games g ON tg.game_id = g.id
+    WHERE tg.tournament_id = ?
+    ORDER BY tg.game_number ASC
+  `).bind(tournamentId).all();
+
+  // Get scores for each game
+  const gamesWithScores = await Promise.all(
+    (games.results as any[]).map(async (game) => {
+      const scores = await db.prepare(`
+        SELECT
+          bp.user_id,
+          bp.score,
+          u.alias,
+          u.email
+        FROM boggle_players bp
+        LEFT JOIN users u ON bp.user_id = u.id
+        WHERE bp.game_id = ?
+        ORDER BY bp.score DESC
+      `).bind(game.game_id).all();
+
+      return {
+        ...game,
+        scores: scores.results
+      };
+    })
+  );
+
+  return c.json({
+    tournament: {
+      id: tournament.id,
+      state: tournament.state,
+      targetScore: tournament.target_score,
+      timerSeconds: tournament.timer_seconds,
+      createdAt: tournament.created_at,
+      finishedAt: tournament.finished_at,
+      winnerId: tournament.winner_id
+    },
+    players: players.results,
+    games: gamesWithScores
+  });
 });
 
 export default app;
