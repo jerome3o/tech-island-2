@@ -961,90 +961,91 @@ app.get('/api/tournaments/:id/state', async (c) => {
           : null
       };
 
-      // Check if game just finished
+      // Check if game just finished and scores haven't been tallied yet
       if (gameState === 'finished') {
-        // Update player scores in tournament
-        for (const player of currentGameState.players as any[]) {
+        // Only tally scores once per game (check last_scored_game_id)
+        const needsScoreTally = tournament.last_scored_game_id !== tournament.current_game_id;
+
+        if (needsScoreTally) {
+          // Update player scores in tournament
+          for (const player of currentGameState.players as any[]) {
+            await db.prepare(`
+              UPDATE boggle_tournament_players
+              SET total_score = total_score + ?
+              WHERE tournament_id = ? AND user_id = ?
+            `).bind(player.score, tournamentId, player.user_id).run();
+          }
+
+          // Mark this game as scored
           await db.prepare(`
-            UPDATE boggle_tournament_players
-            SET total_score = total_score + ?
-            WHERE tournament_id = ? AND user_id = ?
-          `).bind(player.score, tournamentId, player.user_id).run();
+            UPDATE boggle_tournaments SET last_scored_game_id = ?, last_activity_at = ? WHERE id = ?
+          `).bind(tournament.current_game_id, now, tournamentId).run();
+          tournament.last_scored_game_id = tournament.current_game_id;
+
+          // Refresh player scores
+          const updatedPlayers = await db.prepare(`
+            SELECT
+              tp.user_id,
+              tp.total_score,
+              tp.ready,
+              u.alias,
+              u.email
+            FROM boggle_tournament_players tp
+            LEFT JOIN users u ON tp.user_id = u.id
+            WHERE tp.tournament_id = ?
+            ORDER BY tp.total_score DESC, tp.joined_at ASC
+          `).bind(tournamentId).all();
+          players.results = updatedPlayers.results;
+
+          // Check if someone won
+          const leader = players.results[0] as any;
+          if (leader && leader.total_score >= (tournament.target_score as number)) {
+            // Tournament finished!
+            await db.prepare(`
+              UPDATE boggle_tournaments
+              SET state = 'finished', winner_id = ?, finished_at = ?
+              WHERE id = ? AND state = 'active'
+            `).bind(leader.user_id, now, tournamentId).run();
+            tournament.state = 'finished';
+            tournament.winner_id = leader.user_id;
+            tournament.finished_at = now;
+
+            // Send ntfy notification about tournament completion
+            const winnerName = leader.alias || leader.email?.split('@')[0] || 'Unknown';
+            const gamesPlayed = tournamentGames.results.length;
+
+            const playerScores = (players.results as any[])
+              .map((p: any, index: number) => {
+                const name = p.alias || p.email?.split('@')[0] || 'Unknown';
+                const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '  ';
+                return `${medal} ${name}: ${p.total_score} pts`;
+              })
+              .join('\n');
+
+            const message = `🏆 ${winnerName} wins the tournament with ${leader.total_score} points!\n\n` +
+                           `🎮 Games played: ${gamesPlayed}\n` +
+                           `🎯 Target score: ${tournament.target_score}\n\n` +
+                           `📊 Final Standings:\n${playerScores}`;
+
+            sendNtfyNotification(c.env, {
+              title: '🏆 Boggle Tournament Complete!',
+              message,
+              priority: 'high',
+              tags: ['tournament', 'boggle', 'winner'],
+              click: `${c.env.APP_URL}/boggle/?tournament=${tournamentId}`,
+            }).catch(err => console.error('Failed to send ntfy notification:', err));
+          }
         }
 
-        // Update last activity
-        await db.prepare(`
-          UPDATE boggle_tournaments SET last_activity_at = ? WHERE id = ?
-        `).bind(now, tournamentId).run();
-
-        // Refresh player scores
-        const updatedPlayers = await db.prepare(`
-          SELECT
-            tp.user_id,
-            tp.total_score,
-            tp.ready,
-            u.alias,
-            u.email
-          FROM boggle_tournament_players tp
-          LEFT JOIN users u ON tp.user_id = u.id
-          WHERE tp.tournament_id = ?
-          ORDER BY tp.total_score DESC, tp.joined_at ASC
-        `).bind(tournamentId).all();
-        players.results = updatedPlayers.results;
-
-        // Check if someone won
-        const leader = players.results[0] as any;
-        if (leader && leader.total_score >= (tournament.target_score as number)) {
-          // Tournament finished!
-          await db.prepare(`
-            UPDATE boggle_tournaments
-            SET state = 'finished', winner_id = ?, finished_at = ?
-            WHERE id = ? AND state = 'active'
-          `).bind(leader.user_id, now, tournamentId).run();
-          tournament.state = 'finished';
-          tournament.winner_id = leader.user_id;
-          tournament.finished_at = now;
-
-          // Send ntfy notification about tournament completion
-          const winnerName = leader.alias || leader.email?.split('@')[0] || 'Unknown';
-          const gamesPlayed = tournamentGames.results.length;
-
-          const playerScores = (players.results as any[])
-            .map((p: any, index: number) => {
-              const name = p.alias || p.email?.split('@')[0] || 'Unknown';
-              const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '  ';
-              return `${medal} ${name}: ${p.total_score} pts`;
-            })
-            .join('\n');
-
-          const message = `🏆 ${winnerName} wins the tournament with ${leader.total_score} points!\n\n` +
-                         `🎮 Games played: ${gamesPlayed}\n` +
-                         `🎯 Target score: ${tournament.target_score}\n\n` +
-                         `📊 Final Standings:\n${playerScores}`;
-
-          sendNtfyNotification(c.env, {
-            title: '🏆 Boggle Tournament Complete!',
-            message,
-            priority: 'high',
-            tags: ['tournament', 'boggle', 'winner'],
-            click: `${c.env.APP_URL}/boggle/?tournament=${tournamentId}`,
-          }).catch(err => console.error('Failed to send ntfy notification:', err));
-        } else {
-          // No winner yet, we're between games
+        // If tournament not finished, we're between games
+        if (tournament.state === 'active') {
           betweenGames = true;
 
-          // Reset ready status for all players (they need to ready up again)
-          // But only if we haven't already done this for this game
-          const allReady = (players.results as any[]).every(p => p.ready === 1);
-          if (!allReady) {
-            // Check if all players are ready for next game
-            const readyCount = (players.results as any[]).filter(p => p.ready === 1).length;
-            const totalPlayers = players.results.length;
+          // Check if all players are ready for next game
+          const readyCount = (players.results as any[]).filter((p: any) => p.ready === 1).length;
+          const totalPlayers = players.results.length;
 
-            if (readyCount === totalPlayers && totalPlayers > 0) {
-              needsNewGame = true;
-            }
-          } else {
+          if (readyCount === totalPlayers && totalPlayers > 0) {
             needsNewGame = true;
           }
         }
@@ -1291,7 +1292,7 @@ app.get('/api/tournaments/:id/summary', async (c) => {
     ORDER BY tg.game_number ASC
   `).bind(tournamentId).all();
 
-  // Get scores for each game
+  // Get scores and words for each game
   const gamesWithScores = await Promise.all(
     (games.results as any[]).map(async (game) => {
       const scores = await db.prepare(`
@@ -1306,9 +1307,50 @@ app.get('/api/tournaments/:id/summary', async (c) => {
         ORDER BY bp.score DESC
       `).bind(game.game_id).all();
 
+      // Get all words for this game
+      const wordsResult = await db.prepare(`
+        SELECT word, user_id, points
+        FROM boggle_words
+        WHERE game_id = ?
+        ORDER BY submitted_at ASC
+      `).bind(game.game_id).all();
+
+      // Calculate duplicate status
+      const wordCounts = new Map<string, number>();
+      for (const w of wordsResult.results as any[]) {
+        wordCounts.set(w.word, (wordCounts.get(w.word) || 0) + 1);
+      }
+
+      // Build words list grouped by user
+      const wordsByUser = new Map<string, any[]>();
+      for (const w of wordsResult.results as any[]) {
+        const isDuplicate = wordCounts.get(w.word)! > 1;
+        const actualPoints = isDuplicate ? 0 : (w.points as number);
+
+        if (!wordsByUser.has(w.user_id)) {
+          wordsByUser.set(w.user_id, []);
+        }
+        wordsByUser.get(w.user_id)!.push({
+          word: w.word,
+          points: w.points,
+          actualPoints,
+          isDuplicate
+        });
+      }
+
+      const allWords = Array.from(wordsByUser.entries()).map(([userId, words]) => {
+        const player = (scores.results as any[]).find(p => p.user_id === userId);
+        return {
+          userId,
+          words,
+          finalScore: player?.score || 0
+        };
+      });
+
       return {
         ...game,
-        scores: scores.results
+        scores: scores.results,
+        allWords
       };
     })
   );

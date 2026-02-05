@@ -1727,18 +1727,53 @@
       const summaryDiv = document.getElementById('tournamentGamesSummary');
       summaryDiv.innerHTML = `
         <h3 style="margin: 20px 0 15px; color: #667eea;">Games Played (${data.games.length})</h3>
-        ${data.games.map(game => `
-          <div class="game-summary">
-            <h4>Game ${game.game_number}</h4>
-            ${(game.scores || []).map(s => `
-              <div class="game-result">
-                <span>${getDisplayName(s)}</span>
-                <span>${s.score} pts</span>
-              </div>
-            `).join('')}
-          </div>
-        `).join('')}
+        ${data.games.map(game => renderGameSummary(game, data.players)).join('')}
       `;
+    }
+
+    // Helper function to render a game summary with scores and words
+    function renderGameSummary(game, tournamentPlayers) {
+      let html = `
+        <div class="game-summary">
+          <h4>Game ${game.game_number}</h4>
+          ${(game.scores || []).map(s => `
+            <div class="game-result">
+              <span>${getDisplayName(s)}</span>
+              <span>${s.score} pts</span>
+            </div>
+          `).join('')}
+      `;
+
+      // Add words if available
+      if (game.allWords && game.allWords.length > 0) {
+        html += `
+          <details style="margin-top: 15px;">
+            <summary style="cursor: pointer; font-weight: 600; color: #667eea;">Show Words Found</summary>
+            <div style="margin-top: 10px;">
+              ${game.allWords.map(userWords => {
+                const player = (game.scores || []).find(p => p.user_id === userWords.userId) ||
+                               (tournamentPlayers || []).find(p => p.user_id === userWords.userId);
+                const displayName = player ? getDisplayName(player) : userWords.userId.substring(0, 8);
+                return `
+                  <div class="words-found" style="margin-bottom: 15px;">
+                    <h5 style="color: #667eea; margin-bottom: 8px;">${displayName}'s Words (${userWords.finalScore} pts):</h5>
+                    <div class="word-list">
+                      ${userWords.words.map(w => `
+                        <span class="word-tag ${w.isDuplicate ? 'duplicate' : ''}">
+                          ${w.word} (${w.actualPoints})
+                        </span>
+                      `).join('')}
+                    </div>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          </details>
+        `;
+      }
+
+      html += '</div>';
+      return html;
     }
 
     // Update tournament results view (for viewing past tournaments)
@@ -1771,17 +1806,7 @@
       const summaryDiv = document.getElementById('tournamentGamesSummary');
       summaryDiv.innerHTML = `
         <h3 style="margin: 20px 0 15px; color: #667eea;">Games Played (${data.games.length})</h3>
-        ${data.games.map(game => `
-          <div class="game-summary">
-            <h4>Game ${game.game_number}</h4>
-            ${(game.scores || []).map(s => `
-              <div class="game-result">
-                <span>${getDisplayName(s)}</span>
-                <span>${s.score} pts</span>
-              </div>
-            `).join('')}
-          </div>
-        `).join('')}
+        ${data.games.map(game => renderGameSummary(game, data.players)).join('')}
       `;
     }
 
