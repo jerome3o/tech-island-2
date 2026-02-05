@@ -867,16 +867,102 @@ app.get('/api/tournaments/:id/state', async (c) => {
 
   // If tournament is active, check current game state
   if (tournament.state === 'active' && tournament.current_game_id) {
-    // Get current game state using existing endpoint logic
-    const gameResponse = await fetch(`${c.env.APP_URL || ''}/boggle/api/games/${tournament.current_game_id}/state`, {
-      headers: c.req.raw.headers
-    });
+    // Get current game state directly from database (not via internal fetch)
+    const currentGame = await db.prepare(`
+      SELECT * FROM boggle_games WHERE id = ?
+    `).bind(tournament.current_game_id).first();
 
-    if (gameResponse.ok) {
-      currentGameState = await gameResponse.json();
+    if (currentGame) {
+      // Get game players with scores and aliases
+      const gamePlayers = await db.prepare(`
+        SELECT
+          p.user_id,
+          p.score,
+          u.alias,
+          u.email
+        FROM boggle_players p
+        LEFT JOIN users u ON p.user_id = u.id
+        WHERE p.game_id = ?
+        ORDER BY p.score DESC, p.joined_at ASC
+      `).bind(tournament.current_game_id).all();
+
+      // Check if time's up and we need to finish the game
+      const gameTimeUp = currentGame.start_time &&
+        (now - (currentGame.start_time as number)) >= ((currentGame.timer_seconds as number) * 1000);
+
+      let gameState = currentGame.state as string;
+
+      // If time's up and game is still playing, finish it
+      if (gameTimeUp && gameState === 'playing') {
+        await db.prepare(`
+          UPDATE boggle_games SET state = 'finished' WHERE id = ? AND state = 'playing'
+        `).bind(tournament.current_game_id).run();
+        gameState = 'finished';
+
+        // Calculate final scores (remove points for duplicate words)
+        const wordsResult = await db.prepare(`
+          SELECT word, user_id, points
+          FROM boggle_words
+          WHERE game_id = ?
+        `).bind(tournament.current_game_id).all();
+
+        const wordCounts = new Map<string, number>();
+        for (const w of wordsResult.results as any[]) {
+          wordCounts.set(w.word, (wordCounts.get(w.word) || 0) + 1);
+        }
+
+        const finalScores = new Map<string, number>();
+        for (const p of gamePlayers.results as any[]) {
+          finalScores.set(p.user_id, 0);
+        }
+        for (const w of wordsResult.results as any[]) {
+          const isDuplicate = wordCounts.get(w.word)! > 1;
+          if (!isDuplicate) {
+            const currentScore = finalScores.get(w.user_id) || 0;
+            finalScores.set(w.user_id, currentScore + (w.points as number));
+          }
+        }
+
+        // Update player scores in the game
+        for (const [userId, score] of finalScores) {
+          await db.prepare(`
+            UPDATE boggle_players SET score = ? WHERE game_id = ? AND user_id = ?
+          `).bind(score, tournament.current_game_id, userId).run();
+        }
+
+        // Refresh game players after score update
+        const updatedGamePlayers = await db.prepare(`
+          SELECT
+            p.user_id,
+            p.score,
+            u.alias,
+            u.email
+          FROM boggle_players p
+          LEFT JOIN users u ON p.user_id = u.id
+          WHERE p.game_id = ?
+          ORDER BY p.score DESC, p.joined_at ASC
+        `).bind(tournament.current_game_id).all();
+        gamePlayers.results = updatedGamePlayers.results;
+      }
+
+      // Build current game state object
+      currentGameState = {
+        game: {
+          id: currentGame.id,
+          state: gameState,
+          board: JSON.parse(currentGame.board as string),
+          timerSeconds: currentGame.timer_seconds,
+          startTime: currentGame.start_time,
+          createdBy: currentGame.created_by
+        },
+        players: gamePlayers.results,
+        timeRemaining: currentGame.start_time
+          ? Math.max(0, ((currentGame.timer_seconds as number) * 1000) - (now - (currentGame.start_time as number)))
+          : null
+      };
 
       // Check if game just finished
-      if (currentGameState.game.state === 'finished') {
+      if (gameState === 'finished') {
         // Update player scores in tournament
         for (const player of currentGameState.players as any[]) {
           await db.prepare(`
@@ -1017,13 +1103,19 @@ app.get('/api/tournaments/:id/state', async (c) => {
     tournament.current_game_id = gameId;
     betweenGames = false;
 
-    // Fetch new game state
-    const newGameResponse = await fetch(`${c.env.APP_URL || ''}/boggle/api/games/${gameId}/state`, {
-      headers: c.req.raw.headers
-    });
-    if (newGameResponse.ok) {
-      currentGameState = await newGameResponse.json();
-    }
+    // Build new game state directly (we just created it, so we know the data)
+    currentGameState = {
+      game: {
+        id: gameId,
+        state: 'playing',
+        board: board,
+        timerSeconds: tournament.timer_seconds,
+        startTime: now,
+        createdBy: tournament.created_by
+      },
+      players: playersList.map(p => ({ ...p, score: 0 })),
+      timeRemaining: (tournament.timer_seconds as number) * 1000
+    };
 
     // Refresh tournament games list
     const refreshedGames = await db.prepare(`
