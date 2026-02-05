@@ -827,6 +827,16 @@
       await loadGames();
       await loadTournaments();
 
+      // Restore tab selection from localStorage
+      try {
+        const savedTab = localStorage.getItem('boggle_tab');
+        if (savedTab === 'tournaments') {
+          switchTab('tournaments');
+        }
+      } catch (e) {
+        // localStorage might be unavailable
+      }
+
       // Check URL for direct game/tournament link
       const params = new URLSearchParams(window.location.search);
       const gameId = params.get('game');
@@ -845,6 +855,12 @@
     // Switch tabs
     function switchTab(tab) {
       currentTab = tab;
+      // Save tab selection to localStorage
+      try {
+        localStorage.setItem('boggle_tab', tab);
+      } catch (e) {
+        // localStorage might be unavailable
+      }
       document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
       if (tab === 'games') {
         document.querySelector('.tab:first-child').classList.add('active');
