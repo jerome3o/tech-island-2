@@ -962,11 +962,51 @@ app.get('/api/tournaments/:id/state', async (c) => {
         players: gamePlayers.results,
         timeRemaining: currentGame.start_time
           ? Math.max(0, ((currentGame.timer_seconds as number) * 1000) - (now - (currentGame.start_time as number)))
-          : null
+          : null,
+        allWords: null as any
       };
 
       // Check if game just finished and scores haven't been tallied yet
       if (gameState === 'finished') {
+        // Fetch words for the finished game
+        const wordsResult = await db.prepare(`
+          SELECT word, user_id, points
+          FROM boggle_words
+          WHERE game_id = ?
+          ORDER BY submitted_at ASC
+        `).bind(tournament.current_game_id).all();
+
+        // Calculate duplicate status and build words list
+        const wordCounts = new Map<string, number>();
+        for (const w of wordsResult.results as any[]) {
+          wordCounts.set(w.word, (wordCounts.get(w.word) || 0) + 1);
+        }
+
+        const wordsByUser = new Map<string, any[]>();
+        for (const w of wordsResult.results as any[]) {
+          const isDuplicate = wordCounts.get(w.word)! > 1;
+          const actualPoints = isDuplicate ? 0 : (w.points as number);
+
+          if (!wordsByUser.has(w.user_id)) {
+            wordsByUser.set(w.user_id, []);
+          }
+          wordsByUser.get(w.user_id)!.push({
+            word: w.word,
+            points: w.points,
+            actualPoints,
+            isDuplicate
+          });
+        }
+
+        currentGameState.allWords = Array.from(wordsByUser.entries()).map(([userId, words]) => {
+          const player = (gamePlayers.results as any[]).find(p => p.user_id === userId);
+          return {
+            userId,
+            words,
+            finalScore: player?.score || 0
+          };
+        });
+
         // Use atomic update to prevent race condition - only one client can score each game
         const scoreUpdateResult = await db.prepare(`
           UPDATE boggle_tournaments

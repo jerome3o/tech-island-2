@@ -1683,7 +1683,7 @@
 
       if (data.currentGame && data.currentGame.players) {
         const lastGameResults = document.getElementById('lastGameResults');
-        lastGameResults.innerHTML = `
+        let resultsHtml = `
           <h4>Game ${gameNumber} Results</h4>
           ${data.currentGame.players.map(p => `
             <div class="game-result">
@@ -1692,6 +1692,35 @@
             </div>
           `).join('')}
         `;
+
+        // Add words section if available
+        if (data.currentGame.allWords && data.currentGame.allWords.length > 0) {
+          resultsHtml += `
+            <details style="margin-top: 15px;">
+              <summary style="cursor: pointer; font-weight: 600; color: #667eea;">Show Words Found</summary>
+              <div style="margin-top: 10px;">
+                ${data.currentGame.allWords.map(userWords => {
+                  const player = data.currentGame.players.find(p => p.user_id === userWords.userId);
+                  const displayName = player ? getDisplayName(player) : userWords.userId.substring(0, 8);
+                  return `
+                    <div class="words-found" style="margin-bottom: 15px;">
+                      <h5 style="color: #667eea; margin-bottom: 8px;">${displayName}'s Words (${userWords.finalScore} pts):</h5>
+                      <div class="word-list">
+                        ${userWords.words.map(w => `
+                          <span class="word-tag ${w.isDuplicate ? 'duplicate' : ''}">
+                            ${w.word} (${w.actualPoints})
+                          </span>
+                        `).join('')}
+                      </div>
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+            </details>
+          `;
+        }
+
+        lastGameResults.innerHTML = resultsHtml;
       }
 
       // Show ready status
