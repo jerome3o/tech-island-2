@@ -136,7 +136,7 @@ function generateTournamentId(): string {
   return `tourn_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 }
 
-// List active games (lobby or playing)
+// List active games (lobby or playing) - excludes tournament games
 app.get('/api/games', async (c) => {
   const db = c.env.DB;
 
@@ -151,7 +151,9 @@ app.get('/api/games', async (c) => {
       COUNT(DISTINCT p.user_id) as player_count
     FROM boggle_games g
     LEFT JOIN boggle_players p ON g.id = p.game_id
+    LEFT JOIN boggle_tournament_games tg ON g.id = tg.game_id
     WHERE g.state IN ('lobby', 'playing')
+      AND tg.game_id IS NULL
     GROUP BY g.id
     ORDER BY g.created_at DESC
     LIMIT 20
@@ -566,12 +568,12 @@ app.post('/api/games/:id/leave', async (c) => {
   return c.json({ message: 'Left game' });
 });
 
-// Get game history for current user
+// Get game history for current user - excludes tournament games
 app.get('/api/history', async (c) => {
   const db = c.env.DB;
   const user = c.get('user');
 
-  // Get finished games where user participated
+  // Get finished games where user participated (excluding tournament games)
   const games = await db.prepare(`
     SELECT
       g.id,
@@ -581,7 +583,9 @@ app.get('/api/history', async (c) => {
       COUNT(DISTINCT p.user_id) as player_count
     FROM boggle_games g
     INNER JOIN boggle_players p ON g.id = p.game_id
+    LEFT JOIN boggle_tournament_games tg ON g.id = tg.game_id
     WHERE g.state = 'finished'
+      AND tg.game_id IS NULL
       AND g.id IN (
         SELECT game_id FROM boggle_players WHERE user_id = ?
       )
@@ -958,15 +962,60 @@ app.get('/api/tournaments/:id/state', async (c) => {
         players: gamePlayers.results,
         timeRemaining: currentGame.start_time
           ? Math.max(0, ((currentGame.timer_seconds as number) * 1000) - (now - (currentGame.start_time as number)))
-          : null
+          : null,
+        allWords: null as any
       };
 
       // Check if game just finished and scores haven't been tallied yet
       if (gameState === 'finished') {
-        // Only tally scores once per game (check last_scored_game_id)
-        const needsScoreTally = tournament.last_scored_game_id !== tournament.current_game_id;
+        // Fetch words for the finished game
+        const wordsResult = await db.prepare(`
+          SELECT word, user_id, points
+          FROM boggle_words
+          WHERE game_id = ?
+          ORDER BY submitted_at ASC
+        `).bind(tournament.current_game_id).all();
 
-        if (needsScoreTally) {
+        // Calculate duplicate status and build words list
+        const wordCounts = new Map<string, number>();
+        for (const w of wordsResult.results as any[]) {
+          wordCounts.set(w.word, (wordCounts.get(w.word) || 0) + 1);
+        }
+
+        const wordsByUser = new Map<string, any[]>();
+        for (const w of wordsResult.results as any[]) {
+          const isDuplicate = wordCounts.get(w.word)! > 1;
+          const actualPoints = isDuplicate ? 0 : (w.points as number);
+
+          if (!wordsByUser.has(w.user_id)) {
+            wordsByUser.set(w.user_id, []);
+          }
+          wordsByUser.get(w.user_id)!.push({
+            word: w.word,
+            points: w.points,
+            actualPoints,
+            isDuplicate
+          });
+        }
+
+        currentGameState.allWords = Array.from(wordsByUser.entries()).map(([userId, words]) => {
+          const player = (gamePlayers.results as any[]).find(p => p.user_id === userId);
+          return {
+            userId,
+            words,
+            finalScore: player?.score || 0
+          };
+        });
+
+        // Use atomic update to prevent race condition - only one client can score each game
+        const scoreUpdateResult = await db.prepare(`
+          UPDATE boggle_tournaments
+          SET last_scored_game_id = ?, last_activity_at = ?
+          WHERE id = ? AND (last_scored_game_id IS NULL OR last_scored_game_id != ?)
+        `).bind(tournament.current_game_id, now, tournamentId, tournament.current_game_id).run();
+
+        // Only tally scores if we were the one to claim this game (affected rows > 0)
+        if (scoreUpdateResult.meta.changes > 0) {
           // Update player scores in tournament
           for (const player of currentGameState.players as any[]) {
             await db.prepare(`
@@ -975,37 +1024,35 @@ app.get('/api/tournaments/:id/state', async (c) => {
               WHERE tournament_id = ? AND user_id = ?
             `).bind(player.score, tournamentId, player.user_id).run();
           }
-
-          // Mark this game as scored
-          await db.prepare(`
-            UPDATE boggle_tournaments SET last_scored_game_id = ?, last_activity_at = ? WHERE id = ?
-          `).bind(tournament.current_game_id, now, tournamentId).run();
           tournament.last_scored_game_id = tournament.current_game_id;
+        }
 
-          // Refresh player scores
-          const updatedPlayers = await db.prepare(`
-            SELECT
-              tp.user_id,
-              tp.total_score,
-              tp.ready,
-              u.alias,
-              u.email
-            FROM boggle_tournament_players tp
-            LEFT JOIN users u ON tp.user_id = u.id
-            WHERE tp.tournament_id = ?
-            ORDER BY tp.total_score DESC, tp.joined_at ASC
-          `).bind(tournamentId).all();
-          players.results = updatedPlayers.results;
+        // Always refresh player scores (they may have been updated by another client)
+        const updatedPlayers = await db.prepare(`
+          SELECT
+            tp.user_id,
+            tp.total_score,
+            tp.ready,
+            u.alias,
+            u.email
+          FROM boggle_tournament_players tp
+          LEFT JOIN users u ON tp.user_id = u.id
+          WHERE tp.tournament_id = ?
+          ORDER BY tp.total_score DESC, tp.joined_at ASC
+        `).bind(tournamentId).all();
+        players.results = updatedPlayers.results;
 
-          // Check if someone won
-          const leader = players.results[0] as any;
-          if (leader && leader.total_score >= (tournament.target_score as number)) {
-            // Tournament finished!
-            await db.prepare(`
-              UPDATE boggle_tournaments
-              SET state = 'finished', winner_id = ?, finished_at = ?
-              WHERE id = ? AND state = 'active'
-            `).bind(leader.user_id, now, tournamentId).run();
+        // Check if someone won
+        const leader = players.results[0] as any;
+        if (leader && leader.total_score >= (tournament.target_score as number) && tournament.state === 'active') {
+          // Use atomic update to prevent race condition on tournament finish
+          const finishResult = await db.prepare(`
+            UPDATE boggle_tournaments
+            SET state = 'finished', winner_id = ?, finished_at = ?
+            WHERE id = ? AND state = 'active'
+          `).bind(leader.user_id, now, tournamentId).run();
+
+          if (finishResult.meta.changes > 0) {
             tournament.state = 'finished';
             tournament.winner_id = leader.user_id;
             tournament.finished_at = now;
@@ -1034,6 +1081,16 @@ app.get('/api/tournaments/:id/state', async (c) => {
               tags: ['tournament', 'boggle', 'winner'],
               click: `${c.env.APP_URL}/boggle/?tournament=${tournamentId}`,
             }).catch(err => console.error('Failed to send ntfy notification:', err));
+          } else {
+            // Another client already finished the tournament, refresh state
+            const refreshedTournament = await db.prepare(`
+              SELECT state, winner_id, finished_at FROM boggle_tournaments WHERE id = ?
+            `).bind(tournamentId).first();
+            if (refreshedTournament) {
+              tournament.state = refreshedTournament.state;
+              tournament.winner_id = refreshedTournament.winner_id;
+              tournament.finished_at = refreshedTournament.finished_at;
+            }
           }
         }
 
@@ -1055,70 +1112,80 @@ app.get('/api/tournaments/:id/state', async (c) => {
 
   // Create new game if all players are ready
   if (needsNewGame && tournament.state === 'active') {
+    // Use atomic update to prevent race condition - only one client can create the next game
+    // We atomically try to update current_game_id only if it still matches the finished game
+    const oldGameId = tournament.current_game_id;
     const gameId = generateGameId();
     const board = generateBoard();
-    const gameNumber = tournamentGames.results.length + 1;
 
-    const playersList = players.results as any[];
+    const claimResult = await db.prepare(`
+      UPDATE boggle_tournaments
+      SET current_game_id = ?, last_activity_at = ?
+      WHERE id = ? AND current_game_id = ? AND state = 'active'
+    `).bind(gameId, now, tournamentId, oldGameId).run();
 
-    await db.batch([
-      // Create the game
-      db.prepare(`
-        INSERT INTO boggle_games (id, state, board, timer_seconds, created_at, created_by)
-        VALUES (?, ?, ?, ?, ?, ?)
-      `).bind(gameId, 'playing', JSON.stringify(board), tournament.timer_seconds, now, tournament.created_by),
+    // Only create the game if we successfully claimed it
+    if (claimResult.meta.changes > 0) {
+      // Get the correct game number by counting existing games
+      const gameCountResult = await db.prepare(`
+        SELECT COUNT(*) as count FROM boggle_tournament_games WHERE tournament_id = ?
+      `).bind(tournamentId).first();
+      const gameNumber = ((gameCountResult?.count as number) || 0) + 1;
 
-      // Add all tournament players to the game
-      ...(playersList.map(p =>
+      const playersList = players.results as any[];
+
+      await db.batch([
+        // Create the game
         db.prepare(`
-          INSERT INTO boggle_players (game_id, user_id, score, joined_at)
-          VALUES (?, ?, 0, ?)
-        `).bind(gameId, p.user_id, now)
-      )),
+          INSERT INTO boggle_games (id, state, board, timer_seconds, created_at, created_by)
+          VALUES (?, ?, ?, ?, ?, ?)
+        `).bind(gameId, 'playing', JSON.stringify(board), tournament.timer_seconds, now, tournament.created_by),
 
-      // Link game to tournament
-      db.prepare(`
-        INSERT INTO boggle_tournament_games (tournament_id, game_id, game_number)
-        VALUES (?, ?, ?)
-      `).bind(tournamentId, gameId, gameNumber),
+        // Add all tournament players to the game
+        ...(playersList.map(p =>
+          db.prepare(`
+            INSERT INTO boggle_players (game_id, user_id, score, joined_at)
+            VALUES (?, ?, 0, ?)
+          `).bind(gameId, p.user_id, now)
+        )),
 
-      // Update tournament
-      db.prepare(`
-        UPDATE boggle_tournaments
-        SET current_game_id = ?, last_activity_at = ?
-        WHERE id = ?
-      `).bind(gameId, now, tournamentId),
+        // Link game to tournament
+        db.prepare(`
+          INSERT INTO boggle_tournament_games (tournament_id, game_id, game_number)
+          VALUES (?, ?, ?)
+        `).bind(tournamentId, gameId, gameNumber),
 
-      // Reset ready status
-      db.prepare(`
-        UPDATE boggle_tournament_players SET ready = 0 WHERE tournament_id = ?
-      `).bind(tournamentId),
+        // Reset ready status
+        db.prepare(`
+          UPDATE boggle_tournament_players SET ready = 0 WHERE tournament_id = ?
+        `).bind(tournamentId),
 
-      // Start the game
-      db.prepare(`
-        UPDATE boggle_games SET start_time = ? WHERE id = ?
-      `).bind(now, gameId),
-    ]);
+        // Start the game
+        db.prepare(`
+          UPDATE boggle_games SET start_time = ? WHERE id = ?
+        `).bind(now, gameId),
+      ]);
 
-    // Update current game state
-    tournament.current_game_id = gameId;
-    betweenGames = false;
+      // Update current game state
+      tournament.current_game_id = gameId;
+      betweenGames = false;
 
-    // Build new game state directly (we just created it, so we know the data)
-    currentGameState = {
-      game: {
-        id: gameId,
-        state: 'playing',
-        board: board,
-        timerSeconds: tournament.timer_seconds,
-        startTime: now,
-        createdBy: tournament.created_by
-      },
-      players: playersList.map(p => ({ ...p, score: 0 })),
-      timeRemaining: (tournament.timer_seconds as number) * 1000
-    };
+      // Build new game state directly (we just created it, so we know the data)
+      currentGameState = {
+        game: {
+          id: gameId,
+          state: 'playing',
+          board: board,
+          timerSeconds: tournament.timer_seconds,
+          startTime: now,
+          createdBy: tournament.created_by
+        },
+        players: playersList.map(p => ({ ...p, score: 0 })),
+        timeRemaining: (tournament.timer_seconds as number) * 1000
+      };
+    }
 
-    // Refresh tournament games list
+    // Refresh tournament games list (always do this to get latest state)
     const refreshedGames = await db.prepare(`
       SELECT
         tg.game_id,
