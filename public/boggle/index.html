@@ -1683,6 +1683,11 @@
 
       if (data.currentGame && data.currentGame.players) {
         const lastGameResults = document.getElementById('lastGameResults');
+
+        // Preserve details open state across re-renders
+        const existingDetails = lastGameResults.querySelector('#wordsDetails');
+        const wasOpen = existingDetails ? existingDetails.open : false;
+
         let resultsHtml = `
           <h4>Game ${gameNumber} Results</h4>
           ${data.currentGame.players.map(p => `
@@ -1696,7 +1701,7 @@
         // Add words section if available
         if (data.currentGame.allWords && data.currentGame.allWords.length > 0) {
           resultsHtml += `
-            <details style="margin-top: 15px;">
+            <details id="wordsDetails" style="margin-top: 15px;" ${wasOpen ? 'open' : ''}>
               <summary style="cursor: pointer; font-weight: 600; color: #667eea;">Show Words Found</summary>
               <div style="margin-top: 10px;">
                 ${data.currentGame.allWords.map(userWords => {
