@@ -7,6 +7,13 @@ const app = new Hono<AppContext>();
 app.get('/api/apps', (c) => {
   const apps = [
     {
+      id: 'game-counters',
+      name: 'Game Counters',
+      description: 'Score trackers for darts, 500, scrabble & more',
+      path: '/game-counters',
+      icon: '🎯'
+    },
+    {
       id: 'party-games',
       name: 'Party Games',
       description: 'Fun party games with challenges and roasts',

@@ -24,6 +24,7 @@ import paintApp from './apps/paint/api';
 import adminApp from './apps/admin/api';
 import partyGamesApp from './apps/party-games/api';
 import candleWaxApp from './apps/candle-wax/api';
+import gameCountersApp from './apps/game-counters/api';
 
 const app = new Hono<AppContext>();
 
@@ -136,6 +137,7 @@ app.route('/paint', paintApp);
 app.route('/admin', adminApp);
 app.route('/party-games', partyGamesApp);
 app.route('/candle-wax', candleWaxApp);
+app.route('/game-counters', gameCountersApp);
 
 // ============================================
 // Static file serving
