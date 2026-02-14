@@ -310,8 +310,11 @@ app.get('/api/games/:id/state', async (c) => {
       ORDER BY submitted_at ASC
     `).bind(gameId).all();
 
-    // Only recalculate scores if we just finished (to avoid doing this on every poll)
-    if (needsScoring) {
+    // Recalculate scores if the game just finished OR if scores were never calculated
+    // (e.g. game was finished by cron cleanup without running dedup scoring)
+    const allScoresZero = (players.results as any[]).every((p: any) => p.score === 0);
+    const hasWords = wordsResult.results.length > 0;
+    if (needsScoring || (allScoresZero && hasWords)) {
       // Calculate final scores (remove points for duplicate words)
       const wordCounts = new Map<string, number>();
       for (const w of wordsResult.results as any[]) {
@@ -982,6 +985,39 @@ app.get('/api/tournaments/:id/state', async (c) => {
           wordCounts.set(w.word, (wordCounts.get(w.word) || 0) + 1);
         }
 
+        // If the game was finished without scoring (e.g. by cron cleanup),
+        // run the dedup scoring now before tallying tournament scores
+        const allScoresZero = (gamePlayers.results as any[]).every((p: any) => p.score === 0);
+        const hasWords = wordsResult.results.length > 0;
+        if (allScoresZero && hasWords) {
+          const finalScores = new Map<string, number>();
+          for (const p of gamePlayers.results as any[]) {
+            finalScores.set(p.user_id, 0);
+          }
+          for (const w of wordsResult.results as any[]) {
+            const isDuplicate = wordCounts.get(w.word)! > 1;
+            if (!isDuplicate) {
+              const currentScore = finalScores.get(w.user_id) || 0;
+              finalScores.set(w.user_id, currentScore + (w.points as number));
+            }
+          }
+          for (const [userId, score] of finalScores) {
+            await db.prepare(`
+              UPDATE boggle_players SET score = ? WHERE game_id = ? AND user_id = ?
+            `).bind(score, tournament.current_game_id, userId).run();
+          }
+          // Refresh game players after scoring
+          const updatedGamePlayers = await db.prepare(`
+            SELECT p.user_id, p.score, u.alias, u.email
+            FROM boggle_players p
+            LEFT JOIN users u ON p.user_id = u.id
+            WHERE p.game_id = ?
+            ORDER BY p.score DESC, p.joined_at ASC
+          `).bind(tournament.current_game_id).all();
+          gamePlayers.results = updatedGamePlayers.results;
+          currentGameState.players = gamePlayers.results;
+        }
+
         const wordsByUser = new Map<string, any[]>();
         for (const w of wordsResult.results as any[]) {
           const isDuplicate = wordCounts.get(w.word)! > 1;
@@ -1007,6 +1043,7 @@ app.get('/api/tournaments/:id/state', async (c) => {
           };
         });
 
+        // Tally scores to tournament using atomic claim-then-tally.
         // Use atomic update to prevent race condition - only one client can score each game
         const scoreUpdateResult = await db.prepare(`
           UPDATE boggle_tournaments
@@ -1014,17 +1051,28 @@ app.get('/api/tournaments/:id/state', async (c) => {
           WHERE id = ? AND (last_scored_game_id IS NULL OR last_scored_game_id != ?)
         `).bind(tournament.current_game_id, now, tournamentId, tournament.current_game_id).run();
 
-        // Only tally scores if we were the one to claim this game (affected rows > 0)
+        // Only tally scores if we claimed this game (affected rows > 0)
         if (scoreUpdateResult.meta.changes > 0) {
-          // Update player scores in tournament
-          for (const player of currentGameState.players as any[]) {
+          try {
+            // Batch all score updates atomically so they either all succeed or all fail
+            const tallyStatements = (currentGameState.players as any[]).map((player: any) =>
+              db.prepare(`
+                UPDATE boggle_tournament_players
+                SET total_score = total_score + ?
+                WHERE tournament_id = ? AND user_id = ?
+              `).bind(player.score, tournamentId, player.user_id)
+            );
+            await db.batch(tallyStatements);
+            tournament.last_scored_game_id = tournament.current_game_id;
+          } catch (e) {
+            // Score tallying failed — clear the flag so another request can retry
             await db.prepare(`
-              UPDATE boggle_tournament_players
-              SET total_score = total_score + ?
-              WHERE tournament_id = ? AND user_id = ?
-            `).bind(player.score, tournamentId, player.user_id).run();
+              UPDATE boggle_tournaments
+              SET last_scored_game_id = NULL
+              WHERE id = ? AND last_scored_game_id = ?
+            `).bind(tournamentId, tournament.current_game_id).run();
+            throw e;
           }
-          tournament.last_scored_game_id = tournament.current_game_id;
         }
 
         // Always refresh player scores (they may have been updated by another client)
