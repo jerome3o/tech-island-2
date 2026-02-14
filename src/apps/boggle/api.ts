@@ -338,16 +338,16 @@ app.get('/api/games/:id/state', async (c) => {
         }
       }
 
-      // Update all player scores in database (batch update for efficiency)
-      const updatePromises = [];
+      // Update all player scores in database atomically (batch update)
+      const updateStatements = [];
       for (const [userId, score] of finalScores) {
-        updatePromises.push(
+        updateStatements.push(
           db.prepare(`
             UPDATE boggle_players SET score = ? WHERE game_id = ? AND user_id = ?
-          `).bind(score, gameId, userId).run()
+          `).bind(score, gameId, userId)
         );
       }
-      await Promise.all(updatePromises);
+      await db.batch(updateStatements);
 
       // Refresh players data after updating scores
       const updatedPlayers = await db.prepare(`
@@ -930,12 +930,16 @@ app.get('/api/tournaments/:id/state', async (c) => {
           }
         }
 
-        // Update player scores in the game
+        // Update player scores in the game atomically (batch update)
+        const scoreStatements = [];
         for (const [userId, score] of finalScores) {
-          await db.prepare(`
-            UPDATE boggle_players SET score = ? WHERE game_id = ? AND user_id = ?
-          `).bind(score, tournament.current_game_id, userId).run();
+          scoreStatements.push(
+            db.prepare(`
+              UPDATE boggle_players SET score = ? WHERE game_id = ? AND user_id = ?
+            `).bind(score, tournament.current_game_id, userId)
+          );
         }
+        await db.batch(scoreStatements);
 
         // Refresh game players after score update
         const updatedGamePlayers = await db.prepare(`
@@ -1001,11 +1005,15 @@ app.get('/api/tournaments/:id/state', async (c) => {
               finalScores.set(w.user_id, currentScore + (w.points as number));
             }
           }
+          const scoreStatements = [];
           for (const [userId, score] of finalScores) {
-            await db.prepare(`
-              UPDATE boggle_players SET score = ? WHERE game_id = ? AND user_id = ?
-            `).bind(score, tournament.current_game_id, userId).run();
+            scoreStatements.push(
+              db.prepare(`
+                UPDATE boggle_players SET score = ? WHERE game_id = ? AND user_id = ?
+              `).bind(score, tournament.current_game_id, userId)
+            );
           }
+          await db.batch(scoreStatements);
           // Refresh game players after scoring
           const updatedGamePlayers = await db.prepare(`
             SELECT p.user_id, p.score, u.alias, u.email
