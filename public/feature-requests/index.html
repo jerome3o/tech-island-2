@@ -5,11 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Feature Requests - Tech Island</title>
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
 
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
@@ -18,344 +14,246 @@
       padding: 20px;
     }
 
-    .container {
-      max-width: 800px;
-      margin: 0 auto;
-    }
+    .container { max-width: 800px; margin: 0 auto; }
 
-    .header {
-      text-align: center;
-      color: white;
-      margin-bottom: 30px;
-    }
-
-    .header h1 {
-      font-size: 2.5em;
-      margin-bottom: 10px;
-    }
+    .header { text-align: center; color: white; margin-bottom: 30px; }
+    .header h1 { font-size: 2em; margin-bottom: 8px; }
+    .header p { opacity: 0.9; }
 
     .back-link {
-      display: inline-block;
-      color: white;
-      text-decoration: none;
-      margin-bottom: 20px;
-      opacity: 0.9;
+      display: inline-block; color: white; text-decoration: none;
+      margin-bottom: 20px; opacity: 0.9;
     }
+    .back-link:hover { opacity: 1; }
 
-    .back-link:hover {
-      opacity: 1;
+    /* Filter tabs */
+    .filter-tabs {
+      display: flex; gap: 8px; margin-bottom: 20px;
+      overflow-x: auto; padding-bottom: 4px;
     }
+    .filter-tab {
+      padding: 8px 16px; border-radius: 20px;
+      background: rgba(255,255,255,0.2); color: white;
+      border: none; cursor: pointer; font-size: 0.85em;
+      white-space: nowrap; transition: all 0.2s;
+    }
+    .filter-tab:hover { background: rgba(255,255,255,0.35); }
+    .filter-tab.active { background: white; color: #667eea; font-weight: 600; }
 
-    /* Floating Add Button */
+    /* FAB */
     .fab {
-      position: fixed;
-      bottom: 30px;
-      right: 30px;
-      width: 60px;
-      height: 60px;
+      position: fixed; bottom: 30px; right: 30px;
+      width: 60px; height: 60px;
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      border-radius: 50%;
-      border: none;
-      color: white;
-      font-size: 2em;
-      cursor: pointer;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-      transition: transform 0.2s, box-shadow 0.2s;
-      z-index: 100;
+      border-radius: 50%; border: none; color: white;
+      font-size: 2em; cursor: pointer;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+      transition: transform 0.2s; z-index: 100;
     }
+    .fab:hover { transform: scale(1.1); }
 
-    .fab:hover {
-      transform: scale(1.1);
-      box-shadow: 0 6px 25px rgba(0, 0, 0, 0.4);
-    }
-
-    /* Modal Overlay */
+    /* Modal */
     .modal-overlay {
-      display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0, 0, 0, 0.7);
-      z-index: 200;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.7); z-index: 200;
+      align-items: flex-end; justify-content: center;
     }
-
-    .modal-overlay.active {
-      display: flex;
+    .modal-overlay.active { display: flex; }
+    @media (min-width: 600px) {
+      .modal-overlay.active { align-items: center; padding: 20px; }
+      .form-card { border-radius: 12px !important; }
     }
 
     .form-card {
-      background: white;
-      border-radius: 12px;
-      padding: 25px;
-      max-width: 600px;
-      width: 100%;
-      max-height: 90vh;
-      overflow-y: auto;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-      position: relative;
+      background: white; border-radius: 12px 12px 0 0;
+      padding: 25px; max-width: 600px; width: 100%;
+      max-height: 90vh; overflow-y: auto;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3); position: relative;
+      animation: slide-up 0.25s ease-out;
     }
+    @keyframes slide-up { from { transform: translateY(100%); } to { transform: translateY(0); } }
 
     .close-btn {
-      position: absolute;
-      top: 15px;
-      right: 15px;
-      background: none;
-      border: none;
-      font-size: 1.5em;
-      cursor: pointer;
-      color: #888;
-      width: 30px;
-      height: 30px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      position: absolute; top: 15px; right: 15px;
+      background: none; border: none; font-size: 1.5em;
+      cursor: pointer; color: #888; width: 30px; height: 30px;
+      display: flex; align-items: center; justify-content: center;
       border-radius: 50%;
-      transition: background 0.2s;
     }
+    .close-btn:hover { background: #f0f0f0; }
 
-    .close-btn:hover {
-      background: #f0f0f0;
+    .form-card h2 { margin-bottom: 20px; color: #333; }
+    .form-group { margin-bottom: 15px; }
+    .form-group label { display: block; margin-bottom: 5px; color: #555; font-weight: 500; }
+    .form-group input, .form-group textarea {
+      width: 100%; padding: 10px; border: 2px solid #e0e0e0;
+      border-radius: 6px; font-size: 1em; font-family: inherit;
     }
+    .form-group input:focus, .form-group textarea:focus { outline: none; border-color: #667eea; }
+    .form-group textarea { resize: vertical; min-height: 100px; }
 
-    .form-card h2 {
-      margin-bottom: 20px;
-      color: #333;
+    .type-toggle { display: flex; gap: 8px; margin-bottom: 16px; }
+    .type-btn {
+      flex: 1; padding: 10px; border: 2px solid #e0e0e0;
+      border-radius: 8px; background: white; cursor: pointer;
+      font-size: 0.95em; text-align: center; transition: all 0.2s;
     }
-
-    .form-group {
-      margin-bottom: 15px;
-    }
-
-    .form-group label {
-      display: block;
-      margin-bottom: 5px;
-      color: #555;
-      font-weight: 500;
-    }
-
-    .form-group input,
-    .form-group textarea {
-      width: 100%;
-      padding: 10px;
-      border: 2px solid #e0e0e0;
-      border-radius: 6px;
-      font-size: 1em;
-      font-family: inherit;
-    }
-
-    .form-group textarea {
-      resize: vertical;
-      min-height: 100px;
-    }
+    .type-btn.active { border-color: #667eea; background: #f0f4ff; font-weight: 600; }
 
     .icon-picker {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(50px, 1fr));
-      gap: 10px;
-      margin-top: 10px;
+      display: grid; grid-template-columns: repeat(6, 1fr);
+      gap: 8px; margin-top: 8px;
     }
-
     .icon-option {
-      font-size: 2em;
-      padding: 10px;
-      border: 2px solid #e0e0e0;
-      border-radius: 6px;
-      cursor: pointer;
-      text-align: center;
-      background: white;
-      transition: all 0.2s;
+      font-size: 1.5em; padding: 8px; border: 2px solid #e0e0e0;
+      border-radius: 6px; cursor: pointer; text-align: center;
+      background: white; transition: all 0.15s;
     }
-
-    .icon-option:hover {
-      transform: scale(1.1);
-      border-color: #667eea;
-    }
-
-    .icon-option.selected {
-      border-color: #667eea;
-      background: #f0f4ff;
-    }
+    .icon-option:hover { transform: scale(1.1); border-color: #667eea; }
+    .icon-option.selected { border-color: #667eea; background: #f0f4ff; }
 
     .submit-btn {
-      width: 100%;
-      padding: 12px;
+      width: 100%; padding: 12px;
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      border: none;
-      border-radius: 6px;
-      font-size: 1.1em;
-      font-weight: 600;
-      cursor: pointer;
-      transition: transform 0.2s;
+      color: white; border: none; border-radius: 6px;
+      font-size: 1.1em; font-weight: 600; cursor: pointer;
     }
+    .submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
-    .submit-btn:hover {
-      transform: translateY(-2px);
-    }
-
-    .submit-btn:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-
-    .requests-list {
-      display: grid;
-      gap: 20px;
-      padding-bottom: 100px; /* Space for FAB */
-    }
+    /* Cards */
+    .requests-list { display: grid; gap: 16px; padding-bottom: 100px; }
 
     .request-card {
-      background: white;
-      border-radius: 12px;
-      padding: 20px;
-      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-      transition: transform 0.2s;
+      background: white; border-radius: 12px; padding: 20px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1); transition: transform 0.2s;
     }
+    .request-card:hover { transform: translateY(-2px); }
 
-    .request-card:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+    .request-header { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+    .request-icon { font-size: 2.5em; }
+    .request-title { flex: 1; min-width: 0; }
+    .request-title h3 { color: #333; margin-bottom: 4px; font-size: 1.05em; word-wrap: break-word; }
+    .request-meta { font-size: 0.85em; color: #888; }
+
+    /* Status badge */
+    .status-badge {
+      display: inline-block; padding: 3px 10px; border-radius: 12px;
+      font-size: 0.75em; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
+    .status-pending { background: #fff3cd; color: #856404; }
+    .status-approved { background: #d4edda; color: #155724; }
+    .status-rejected { background: #f8d7da; color: #721c24; }
+    .status-in_progress { background: #cce5ff; color: #004085; }
+    .status-completed { background: #d1ecf1; color: #0c5460; }
 
-    .request-header {
-      display: flex;
-      align-items: center;
-      gap: 15px;
-      margin-bottom: 15px;
+    .type-badge {
+      display: inline-block; padding: 2px 8px; border-radius: 10px;
+      font-size: 0.7em; font-weight: 600; margin-left: 6px;
     }
+    .type-feature { background: #e8f4fd; color: #1976d2; }
+    .type-bug { background: #fce4ec; color: #c62828; }
 
-    .request-icon {
-      font-size: 3em;
+    .request-description { color: #555; line-height: 1.6; margin-bottom: 12px; font-size: 0.95em; }
+
+    .admin-response {
+      background: #f8f9fa; border-left: 3px solid #667eea;
+      padding: 10px 14px; margin-bottom: 12px; border-radius: 0 6px 6px 0;
     }
+    .admin-response .label { font-size: 0.8em; color: #667eea; font-weight: 600; margin-bottom: 4px; }
+    .admin-response .text { color: #444; font-size: 0.9em; line-height: 1.5; }
 
-    .request-title {
-      flex: 1;
-    }
-
-    .request-title h3 {
-      color: #333;
-      margin-bottom: 5px;
-    }
-
-    .request-meta {
-      font-size: 0.9em;
-      color: #888;
-    }
-
-    .request-description {
-      color: #555;
-      line-height: 1.6;
-      margin-bottom: 15px;
-    }
-
+    /* Reactions */
     .reactions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      padding-top: 15px;
-      border-top: 1px solid #e0e0e0;
+      display: flex; flex-wrap: wrap; gap: 8px;
+      padding-top: 12px; border-top: 1px solid #e0e0e0;
       position: relative;
     }
-
     .reaction-btn {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      padding: 6px 12px;
-      border: 2px solid #e0e0e0;
-      border-radius: 20px;
-      background: white;
-      cursor: pointer;
-      font-size: 1.2em;
-      transition: all 0.2s;
+      display: flex; align-items: center; gap: 4px;
+      padding: 5px 10px; border: 2px solid #e0e0e0;
+      border-radius: 20px; background: white; cursor: pointer;
+      font-size: 1.1em; transition: all 0.2s;
     }
+    .reaction-btn:hover { border-color: #667eea; }
+    .reaction-btn.active { background: #667eea; border-color: #667eea; color: white; }
+    .reaction-btn.add-reaction { background: #f8f8f8; border-color: #ddd; font-size: 0.85em; }
+    .reaction-btn.add-reaction:hover { background: #667eea; border-color: #667eea; color: white; }
+    .reaction-count { font-size: 0.75em; font-weight: 600; }
 
-    .reaction-btn:hover {
-      transform: scale(1.05);
-      border-color: #667eea;
-    }
-
-    .reaction-btn.active {
-      background: #667eea;
-      border-color: #667eea;
-      color: white;
-    }
-
-    .reaction-btn.add-reaction {
-      background: #f8f8f8;
-      border-color: #ddd;
-      font-size: 1em;
-      padding: 6px 12px;
-    }
-
-    .reaction-btn.add-reaction:hover {
-      background: #667eea;
-      border-color: #667eea;
-      color: white;
-    }
-
-    .reaction-count {
-      font-size: 0.8em;
-      font-weight: 600;
-    }
-
-    /* Reaction Picker Popup */
     .reaction-picker {
-      display: none;
-      position: absolute;
-      bottom: 100%;
-      left: 0;
-      background: white;
-      border: 2px solid #e0e0e0;
-      border-radius: 12px;
-      padding: 10px;
-      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-      z-index: 10;
-      flex-wrap: wrap;
-      gap: 8px;
-      max-width: 280px;
-      margin-bottom: 8px;
+      display: none; position: absolute; bottom: 100%; left: 0;
+      background: white; border: 2px solid #e0e0e0; border-radius: 12px;
+      padding: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+      z-index: 10; flex-wrap: wrap; gap: 8px;
+      max-width: 280px; margin-bottom: 8px;
     }
-
-    .reaction-picker.active {
-      display: flex;
-    }
-
+    .reaction-picker.active { display: flex; }
     .reaction-picker-btn {
-      font-size: 1.5em;
-      padding: 8px;
-      background: white;
-      border: 2px solid #e0e0e0;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: all 0.2s;
+      font-size: 1.5em; padding: 6px; background: white;
+      border: 2px solid #e0e0e0; border-radius: 8px; cursor: pointer;
     }
+    .reaction-picker-btn:hover { border-color: #667eea; background: #f0f4ff; }
 
-    .reaction-picker-btn:hover {
-      transform: scale(1.1);
-      border-color: #667eea;
-      background: #f0f4ff;
+    /* Comments */
+    .comments-section {
+      margin-top: 12px; padding-top: 12px; border-top: 1px solid #e0e0e0;
     }
+    .comments-toggle {
+      background: none; border: none; color: #667eea; cursor: pointer;
+      font-size: 0.9em; font-weight: 500; padding: 4px 0;
+    }
+    .comments-toggle:hover { text-decoration: underline; }
 
-    .loading {
-      text-align: center;
-      color: white;
-      font-size: 1.2em;
-      padding: 40px;
+    .comments-list { margin-top: 10px; }
+    .comment {
+      padding: 8px 12px; background: #f8f9fa; border-radius: 8px;
+      margin-bottom: 8px; font-size: 0.9em;
     }
+    .comment .author { font-weight: 600; color: #333; margin-right: 6px; }
+    .comment .time { color: #999; font-size: 0.8em; }
+    .comment .body { color: #444; margin-top: 4px; line-height: 1.4; }
 
-    .error {
-      background: #ff6b6b;
-      color: white;
-      padding: 15px;
-      border-radius: 6px;
-      margin-bottom: 20px;
+    .comment-form {
+      display: flex; gap: 8px; margin-top: 8px;
     }
+    .comment-form input {
+      flex: 1; padding: 8px 12px; border: 2px solid #e0e0e0;
+      border-radius: 20px; font-size: 0.9em; font-family: inherit;
+    }
+    .comment-form input:focus { outline: none; border-color: #667eea; }
+    .comment-form button {
+      padding: 8px 16px; background: #667eea; color: white;
+      border: none; border-radius: 20px; cursor: pointer; font-size: 0.85em;
+      font-weight: 600; white-space: nowrap;
+    }
+    .comment-form button:disabled { opacity: 0.5; }
+
+    /* Admin controls */
+    .admin-controls {
+      margin-top: 12px; padding-top: 12px; border-top: 1px solid #e0e0e0;
+    }
+    .admin-controls summary {
+      color: #667eea; cursor: pointer; font-size: 0.85em; font-weight: 600;
+    }
+    .admin-panel {
+      margin-top: 10px; display: flex; flex-direction: column; gap: 8px;
+    }
+    .admin-panel select, .admin-panel textarea {
+      width: 100%; padding: 8px; border: 2px solid #e0e0e0;
+      border-radius: 6px; font-family: inherit; font-size: 0.9em;
+    }
+    .admin-panel textarea { min-height: 60px; resize: vertical; }
+    .admin-btn-row { display: flex; gap: 8px; }
+    .admin-btn {
+      padding: 8px 16px; border: none; border-radius: 6px;
+      cursor: pointer; font-size: 0.85em; font-weight: 600;
+    }
+    .admin-save { background: #667eea; color: white; }
+    .admin-delete { background: #dc3545; color: white; }
+
+    .loading { text-align: center; color: white; font-size: 1.2em; padding: 40px; }
+    .error { background: #ff6b6b; color: white; padding: 15px; border-radius: 6px; margin-bottom: 20px; }
   </style>
 </head>
 <body>
@@ -364,154 +262,280 @@
 
     <div class="header">
       <h1>💡 Feature Requests</h1>
-      <p>Share your ideas and vote on features you'd like to see!</p>
+      <p>Share your ideas, report bugs, and vote on features!</p>
+    </div>
+
+    <div class="filter-tabs" id="filterTabs">
+      <button class="filter-tab active" data-filter="all">All</button>
+      <button class="filter-tab" data-filter="pending">Pending</button>
+      <button class="filter-tab" data-filter="approved">Approved</button>
+      <button class="filter-tab" data-filter="in_progress">In Progress</button>
+      <button class="filter-tab" data-filter="completed">Completed</button>
+      <button class="filter-tab" data-filter="rejected">Rejected</button>
     </div>
 
     <div id="requestsList"></div>
   </div>
 
-  <!-- Floating Action Button -->
   <button class="fab" id="openFormBtn">+</button>
 
-  <!-- Modal for Submit Form -->
   <div class="modal-overlay" id="formModal">
     <div class="form-card">
-      <button class="close-btn" id="closeFormBtn">×</button>
-      <h2>Submit a New Idea</h2>
+      <button class="close-btn" id="closeFormBtn">&times;</button>
+      <h2 id="formTitle">Submit a New Idea</h2>
+      <div class="type-toggle" id="typeToggle">
+        <button type="button" class="type-btn active" data-type="feature">💡 Feature</button>
+        <button type="button" class="type-btn" data-type="bug">🐛 Bug</button>
+      </div>
       <form id="submitForm">
         <div class="form-group">
           <label for="title">Title</label>
           <input type="text" id="title" placeholder="Give your idea a catchy name" required>
         </div>
-
         <div class="form-group">
           <label>Choose an Icon</label>
-          <div class="icon-picker" id="iconPicker">
-            <button type="button" class="icon-option" data-icon="🚀">🚀</button>
-            <button type="button" class="icon-option" data-icon="💡">💡</button>
-            <button type="button" class="icon-option" data-icon="🎨">🎨</button>
-            <button type="button" class="icon-option" data-icon="🎮">🎮</button>
-            <button type="button" class="icon-option" data-icon="📱">📱</button>
-            <button type="button" class="icon-option" data-icon="🌟">🌟</button>
-            <button type="button" class="icon-option" data-icon="🔥">🔥</button>
-            <button type="button" class="icon-option" data-icon="⚡">⚡</button>
-            <button type="button" class="icon-option" data-icon="🎯">🎯</button>
-            <button type="button" class="icon-option" data-icon="🏆">🏆</button>
-            <button type="button" class="icon-option" data-icon="🎪">🎪</button>
-            <button type="button" class="icon-option" data-icon="🎭">🎭</button>
-          </div>
+          <div class="icon-picker" id="iconPicker"></div>
         </div>
-
         <div class="form-group">
           <label for="description">Description</label>
           <textarea id="description" placeholder="Describe your idea in detail..." required></textarea>
         </div>
-
-        <button type="submit" class="submit-btn">Submit Feature Request</button>
+        <button type="submit" class="submit-btn">Submit</button>
       </form>
     </div>
   </div>
 
   <script>
     const REACTION_EMOJIS = ['❤️', '👍', '👎', '😂', '🎉', '🤔', '👀', '🔥'];
-    let selectedIcon = '💡';
-    let currentPickerId = null;
+    const FEATURE_ICONS = ['🚀', '💡', '🎨', '🎮', '📱', '🌟', '🔥', '⚡', '🎯', '🏆', '🎪', '🎭'];
+    const BUG_ICONS = ['🐛', '🐞', '💥', '🔧', '⚠️', '🚨', '🔴', '❌', '🩹', '🧯', '🕳️', '💔'];
 
-    // Modal controls
+    let selectedType = 'feature';
+    let selectedIcon = '💡';
+    let currentFilter = 'all';
+    let allRequests = [];
+    let currentUser = null;
+    let openComments = {};
+
+    // Fetch current user
+    async function loadUser() {
+      try {
+        const resp = await fetch('/api/me');
+        if (resp.ok) currentUser = await resp.json();
+      } catch {}
+    }
+
     const formModal = document.getElementById('formModal');
     const openFormBtn = document.getElementById('openFormBtn');
     const closeFormBtn = document.getElementById('closeFormBtn');
 
-    openFormBtn.addEventListener('click', () => {
-      formModal.classList.add('active');
+    openFormBtn.addEventListener('click', () => formModal.classList.add('active'));
+    closeFormBtn.addEventListener('click', () => formModal.classList.remove('active'));
+    formModal.addEventListener('click', (e) => { if (e.target === formModal) formModal.classList.remove('active'); });
+
+    // Type toggle
+    function updateIcons() {
+      const icons = selectedType === 'bug' ? BUG_ICONS : FEATURE_ICONS;
+      if (selectedType === 'bug' && FEATURE_ICONS.includes(selectedIcon)) selectedIcon = '🐛';
+      if (selectedType === 'feature' && BUG_ICONS.includes(selectedIcon)) selectedIcon = '💡';
+
+      document.getElementById('iconPicker').innerHTML = icons.map(ic =>
+        `<button type="button" class="icon-option${ic === selectedIcon ? ' selected' : ''}" data-icon="${ic}">${ic}</button>`
+      ).join('');
+      document.getElementById('formTitle').textContent = selectedType === 'bug' ? '🐛 Report a Bug' : '💡 Submit a New Idea';
+      document.getElementById('title').placeholder = selectedType === 'bug' ? 'Brief description of the bug' : 'Give your idea a catchy name';
+      document.getElementById('description').placeholder = selectedType === 'bug' ? 'What happened? What did you expect?' : 'Describe your idea in detail...';
+    }
+
+    document.getElementById('typeToggle').addEventListener('click', (e) => {
+      const btn = e.target.closest('.type-btn');
+      if (!btn) return;
+      document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      selectedType = btn.dataset.type;
+      updateIcons();
     });
 
-    closeFormBtn.addEventListener('click', () => {
-      formModal.classList.remove('active');
-    });
-
-    // Close modal when clicking outside
-    formModal.addEventListener('click', (e) => {
-      if (e.target === formModal) {
-        formModal.classList.remove('active');
-      }
-    });
-
-    // Icon picker
     document.getElementById('iconPicker').addEventListener('click', (e) => {
       if (e.target.classList.contains('icon-option')) {
-        document.querySelectorAll('.icon-option').forEach(btn => btn.classList.remove('selected'));
+        document.querySelectorAll('.icon-option').forEach(b => b.classList.remove('selected'));
         e.target.classList.add('selected');
         selectedIcon = e.target.dataset.icon;
       }
     });
 
-    // Pre-select first icon
-    document.querySelector('.icon-option').classList.add('selected');
+    updateIcons();
+
+    // Filter tabs
+    document.getElementById('filterTabs').addEventListener('click', (e) => {
+      const tab = e.target.closest('.filter-tab');
+      if (!tab) return;
+      document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      currentFilter = tab.dataset.filter;
+      renderRequests();
+    });
 
     // Submit form
     document.getElementById('submitForm').addEventListener('submit', async (e) => {
       e.preventDefault();
-
-      const title = document.getElementById('title').value;
-      const description = document.getElementById('description').value;
+      const titleVal = document.getElementById('title').value.trim();
+      const descVal = document.getElementById('description').value.trim();
+      if (!titleVal || !descVal) return;
 
       const btn = e.target.querySelector('.submit-btn');
       btn.disabled = true;
       btn.textContent = 'Submitting...';
-
       try {
-        const response = await fetch('/feature-requests/api/requests', {
+        const resp = await fetch('/feature-requests/api/requests', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ title, icon: selectedIcon, description })
+          body: JSON.stringify({ title: titleVal, icon: selectedIcon, description: descVal, type: selectedType })
         });
-
-        if (!response.ok) throw new Error('Failed to submit');
-
-        // Clear form
+        if (!resp.ok) throw new Error('Failed');
         document.getElementById('title').value = '';
         document.getElementById('description').value = '';
-
-        // Close modal
         formModal.classList.remove('active');
-
-        // Reload requests
         await loadRequests();
-      } catch (error) {
-        alert('Failed to submit feature request. Please try again.');
+      } catch {
+        alert('Failed to submit. Please try again.');
       } finally {
         btn.disabled = false;
-        btn.textContent = 'Submit Feature Request';
+        btn.textContent = 'Submit';
       }
     });
 
-    // Toggle reaction picker
-    function toggleReactionPicker(requestId) {
-      const picker = document.getElementById(`picker-${requestId}`);
-      const wasActive = picker.classList.contains('active');
+    function statusLabel(s) {
+      const labels = { pending: 'Pending', approved: 'Approved', rejected: 'Rejected', in_progress: 'In Progress', completed: 'Completed' };
+      return labels[s] || s;
+    }
 
-      // Close all pickers
-      document.querySelectorAll('.reaction-picker').forEach(p => p.classList.remove('active'));
+    function timeAgo(ts) {
+      const diff = Math.floor(Date.now() / 1000) - ts;
+      if (diff < 60) return 'just now';
+      if (diff < 3600) return Math.floor(diff / 60) + 'm ago';
+      if (diff < 86400) return Math.floor(diff / 3600) + 'h ago';
+      return Math.floor(diff / 86400) + 'd ago';
+    }
 
-      // Toggle this one
-      if (!wasActive) {
-        picker.classList.add('active');
-        currentPickerId = requestId;
-      } else {
-        currentPickerId = null;
+    function renderRequests() {
+      const container = document.getElementById('requestsList');
+      const filtered = currentFilter === 'all'
+        ? allRequests
+        : allRequests.filter(r => r.status === currentFilter);
+
+      if (filtered.length === 0) {
+        container.innerHTML = `<div class="loading">${allRequests.length === 0 ? 'No requests yet. Be the first!' : 'No requests match this filter.'}</div>`;
+        return;
+      }
+
+      const isAdmin = currentUser?.is_admin;
+
+      container.innerHTML = filtered.map(req => {
+        const activeReactions = REACTION_EMOJIS.filter(em => (req.reactions[em] || 0) > 0);
+        const commentsOpen = openComments[req.id];
+
+        return `
+          <div class="request-card" data-id="${req.id}">
+            <div class="request-header">
+              <div class="request-icon">${req.icon}</div>
+              <div class="request-title">
+                <h3>${escapeHtml(req.title)}
+                  <span class="type-badge type-${req.type}">${req.type === 'bug' ? '🐛 Bug' : '💡 Feature'}</span>
+                </h3>
+                <div class="request-meta">
+                  <span class="status-badge status-${req.status}">${statusLabel(req.status)}</span>
+                  &middot; ${escapeHtml(req.creator_name)} &middot; ${timeAgo(req.created_at)}
+                </div>
+              </div>
+            </div>
+            <div class="request-description">${escapeHtml(req.description)}</div>
+            ${req.admin_response ? `
+              <div class="admin-response">
+                <div class="label">Admin Response</div>
+                <div class="text">${escapeHtml(req.admin_response)}</div>
+              </div>
+            ` : ''}
+            <div class="reactions" data-request-id="${req.id}">
+              <div class="reaction-picker" id="picker-${req.id}">
+                ${REACTION_EMOJIS.map(em => `<button class="reaction-picker-btn" data-emoji="${em}" data-request-id="${req.id}">${em}</button>`).join('')}
+              </div>
+              ${activeReactions.map(em => {
+                const count = req.reactions[em];
+                const active = req.user_reactions.includes(em);
+                return `<button class="reaction-btn ${active ? 'active' : ''}" data-emoji="${em}" data-request-id="${req.id}"><span>${em}</span><span class="reaction-count">${count}</span></button>`;
+              }).join('')}
+              <button class="reaction-btn add-reaction" data-request-id="${req.id}">+ React</button>
+            </div>
+            <div class="comments-section">
+              <button class="comments-toggle" data-id="${req.id}">
+                ${commentsOpen ? '▾' : '▸'} Comments (${req.comment_count})
+              </button>
+              ${commentsOpen ? `<div class="comments-list" id="comments-${req.id}"><div class="loading" style="color:#888;font-size:0.85em;padding:10px">Loading...</div></div>
+              <div class="comment-form">
+                <input type="text" placeholder="Add a comment..." id="comment-input-${req.id}">
+                <button onclick="submitComment(${req.id})">Send</button>
+              </div>` : ''}
+            </div>
+            ${isAdmin ? `
+              <details class="admin-controls">
+                <summary>Admin Controls</summary>
+                <div class="admin-panel">
+                  <select id="admin-status-${req.id}">
+                    ${['pending', 'approved', 'rejected', 'in_progress', 'completed'].map(s =>
+                      `<option value="${s}" ${req.status === s ? 'selected' : ''}>${statusLabel(s)}</option>`
+                    ).join('')}
+                  </select>
+                  <textarea id="admin-response-${req.id}" placeholder="Admin response (optional)">${escapeHtml(req.admin_response || '')}</textarea>
+                  <div class="admin-btn-row">
+                    <button class="admin-btn admin-save" onclick="adminUpdateStatus(${req.id})">Save</button>
+                    <button class="admin-btn admin-delete" onclick="adminDelete(${req.id})">Delete</button>
+                  </div>
+                </div>
+              </details>
+            ` : ''}
+          </div>
+        `;
+      }).join('');
+
+      // Bind reaction handlers
+      container.querySelectorAll('.reaction-btn:not(.add-reaction)').forEach(btn => {
+        btn.addEventListener('click', (e) => { e.stopPropagation(); reactToRequest(btn.dataset.requestId, btn.dataset.emoji); });
+      });
+      container.querySelectorAll('.add-reaction').forEach(btn => {
+        btn.addEventListener('click', (e) => { e.stopPropagation(); toggleReactionPicker(btn.dataset.requestId); });
+      });
+      container.querySelectorAll('.reaction-picker-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => { e.stopPropagation(); reactToRequest(btn.dataset.requestId, btn.dataset.emoji); });
+      });
+      container.querySelectorAll('.comments-toggle').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = btn.dataset.id;
+          openComments[id] = !openComments[id];
+          renderRequests();
+          if (openComments[id]) loadComments(id);
+        });
+      });
+
+      // Load open comments
+      for (const id of Object.keys(openComments)) {
+        if (openComments[id]) loadComments(id);
       }
     }
 
-    // Close picker when clicking outside
+    function toggleReactionPicker(requestId) {
+      const picker = document.getElementById(`picker-${requestId}`);
+      const wasActive = picker.classList.contains('active');
+      document.querySelectorAll('.reaction-picker').forEach(p => p.classList.remove('active'));
+      if (!wasActive) picker.classList.add('active');
+    }
+
     document.addEventListener('click', (e) => {
       if (!e.target.closest('.reactions')) {
         document.querySelectorAll('.reaction-picker').forEach(p => p.classList.remove('active'));
-        currentPickerId = null;
       }
     });
 
-    // React to a request
     async function reactToRequest(requestId, emoji) {
       try {
         await fetch(`/feature-requests/api/requests/${requestId}/react`, {
@@ -519,111 +543,106 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ emoji })
         });
-
-        // Reload to show updated counts
         await loadRequests();
-      } catch (error) {
-        alert('Failed to update reaction. Please try again.');
+      } catch { alert('Failed to update reaction.'); }
+    }
+
+    async function loadComments(requestId) {
+      const container = document.getElementById(`comments-${requestId}`);
+      if (!container) return;
+      try {
+        const resp = await fetch(`/feature-requests/api/requests/${requestId}/comments`);
+        const comments = await resp.json();
+        if (comments.length === 0) {
+          container.innerHTML = '<div style="color:#999;font-size:0.85em;padding:8px">No comments yet.</div>';
+          return;
+        }
+        container.innerHTML = comments.map(c => `
+          <div class="comment">
+            <span class="author">${escapeHtml(c.author_name)}</span>
+            <span class="time">${timeAgo(c.created_at)}</span>
+            <div class="body">${escapeHtml(c.content)}</div>
+          </div>
+        `).join('');
+      } catch {
+        container.innerHTML = '<div style="color:#c00;font-size:0.85em;padding:8px">Failed to load comments.</div>';
       }
     }
 
-    // Load and display requests
+    async function submitComment(requestId) {
+      const input = document.getElementById(`comment-input-${requestId}`);
+      const content = input.value.trim();
+      if (!content) return;
+      input.disabled = true;
+      try {
+        const resp = await fetch(`/feature-requests/api/requests/${requestId}/comments`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ content })
+        });
+        if (!resp.ok) throw new Error('Failed');
+        input.value = '';
+        // Update comment count in allRequests
+        const req = allRequests.find(r => r.id === requestId);
+        if (req) req.comment_count++;
+        await loadComments(requestId);
+        renderRequests();
+      } catch {
+        alert('Failed to post comment.');
+      } finally {
+        input.disabled = false;
+      }
+    }
+
+    async function adminUpdateStatus(requestId) {
+      const status = document.getElementById(`admin-status-${requestId}`).value;
+      const adminResponse = document.getElementById(`admin-response-${requestId}`).value.trim();
+      try {
+        const resp = await fetch(`/feature-requests/api/requests/${requestId}/status`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status, admin_response: adminResponse || null })
+        });
+        if (!resp.ok) throw new Error('Failed');
+        await loadRequests();
+      } catch { alert('Failed to update status.'); }
+    }
+
+    async function adminDelete(requestId) {
+      if (!confirm('Delete this feature request? This cannot be undone.')) return;
+      try {
+        const resp = await fetch(`/feature-requests/api/requests/${requestId}`, { method: 'DELETE' });
+        if (!resp.ok) throw new Error('Failed');
+        await loadRequests();
+      } catch { alert('Failed to delete.'); }
+    }
+
     async function loadRequests() {
       const container = document.getElementById('requestsList');
-      container.innerHTML = '<div class="loading">Loading requests...</div>';
-
+      if (allRequests.length === 0) {
+        container.innerHTML = '<div class="loading">Loading requests...</div>';
+      }
       try {
-        const response = await fetch('/feature-requests/api/requests');
-        const requests = await response.json();
-
-        if (requests.length === 0) {
-          container.innerHTML = '<div class="loading">No feature requests yet. Be the first to submit one!</div>';
-          return;
-        }
-
-        container.innerHTML = requests.map(req => {
-          // Get reactions that have counts
-          const activeReactions = REACTION_EMOJIS.filter(emoji => (req.reactions[emoji] || 0) > 0);
-
-          return `
-            <div class="request-card">
-              <div class="request-header">
-                <div class="request-icon">${req.icon}</div>
-                <div class="request-title">
-                  <h3>${escapeHtml(req.title)}</h3>
-                  <div class="request-meta">
-                    Submitted by ${escapeHtml(req.creator_name)} • ${new Date(req.created_at * 1000).toLocaleDateString()}
-                  </div>
-                </div>
-              </div>
-              <div class="request-description">${escapeHtml(req.description)}</div>
-              <div class="reactions" data-request-id="${req.id}">
-                <div class="reaction-picker" id="picker-${req.id}">
-                  ${REACTION_EMOJIS.map(emoji => `
-                    <button class="reaction-picker-btn" data-emoji="${emoji}" data-request-id="${req.id}">
-                      ${emoji}
-                    </button>
-                  `).join('')}
-                </div>
-                ${activeReactions.map(emoji => {
-                  const count = req.reactions[emoji];
-                  const isActive = req.user_reactions.includes(emoji);
-                  return `
-                    <button class="reaction-btn ${isActive ? 'active' : ''}" data-emoji="${emoji}" data-request-id="${req.id}">
-                      <span>${emoji}</span>
-                      <span class="reaction-count">${count}</span>
-                    </button>
-                  `;
-                }).join('')}
-                <button class="reaction-btn add-reaction" data-request-id="${req.id}">
-                  + Add Reaction
-                </button>
-              </div>
-            </div>
-          `;
-        }).join('');
-
-        // Add reaction click handlers
-        container.querySelectorAll('.reaction-btn:not(.add-reaction)').forEach(btn => {
-          btn.addEventListener('click', async (e) => {
-            e.stopPropagation();
-            const emoji = btn.dataset.emoji;
-            const requestId = btn.dataset.requestId;
-            await reactToRequest(requestId, emoji);
-          });
-        });
-
-        // Add "Add Reaction" button handlers
-        container.querySelectorAll('.add-reaction').forEach(btn => {
-          btn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const requestId = btn.dataset.requestId;
-            toggleReactionPicker(requestId);
-          });
-        });
-
-        // Add reaction picker button handlers
-        container.querySelectorAll('.reaction-picker-btn').forEach(btn => {
-          btn.addEventListener('click', async (e) => {
-            e.stopPropagation();
-            const emoji = btn.dataset.emoji;
-            const requestId = btn.dataset.requestId;
-            await reactToRequest(requestId, emoji);
-          });
-        });
-      } catch (error) {
-        container.innerHTML = '<div class="error">Failed to load requests. Please refresh the page.</div>';
+        const resp = await fetch('/feature-requests/api/requests');
+        allRequests = await resp.json();
+        renderRequests();
+      } catch {
+        container.innerHTML = '<div class="error">Failed to load requests. Please refresh.</div>';
       }
     }
 
     function escapeHtml(text) {
+      if (!text) return '';
       const div = document.createElement('div');
       div.textContent = text;
       return div.innerHTML;
     }
 
-    // Initial load
-    loadRequests();
+    // Init
+    (async () => {
+      await loadUser();
+      await loadRequests();
+    })();
   </script>
 </body>
 </html>

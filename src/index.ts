@@ -66,7 +66,10 @@ app.use('/*/api/*', async (c, next) => {
 // Get current user info
 app.get('/api/me', async (c) => {
   const user = c.get('user');
-  return c.json(user);
+  return c.json({
+    ...user,
+    is_admin: user.email === c.env.ADMIN_EMAIL
+  });
 });
 
 // Update user display name

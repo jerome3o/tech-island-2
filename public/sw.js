@@ -1,6 +1,6 @@
 // Service Worker for Towerhouse Apps PWA
 
-const CACHE_NAME = 'towerhouse-v1';
+const CACHE_NAME = 'towerhouse-v2';
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',
