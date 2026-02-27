@@ -29,6 +29,21 @@ This repo is designed for "fire and forget" agents - you may be one of many agen
 - **Domain**: Protected via Cloudflare Access (workers.dev URL is disabled)
 - **Framework**: Hono (lightweight, fast, Workers-native)
 - **CI/CD**: GitHub Actions - auto-deploys on push to main
+- **Android App**: Native Android app built via TWA (Trusted Web Activity), auto-built in CI
+
+## Android App
+
+The PWA is wrapped in a native Android app using Trusted Web Activities (TWA). This provides:
+- Proper push notification support on Android (PWA notifications are unreliable)
+- Native app experience with app icon and launcher integration
+- Better offline support
+
+**Files**:
+- `twa-manifest.json` - TWA configuration (package ID, host, icons, etc.)
+- `.github/workflows/build-android.yml` - Builds APK on every push
+- `ANDROID.md` - User-facing documentation for downloading and installing
+
+**Building**: APKs are automatically built and available as GitHub Actions artifacts. See `ANDROID.md` for details.
 
 ## Design Principles
 
